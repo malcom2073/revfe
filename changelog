@@ -1,0 +1,37 @@
+0.6.1:
+FileBrowser:
+Fixes to work with new GUI system
+
+EmbeddingEngine:
+Started on a Linux version, still not entirely up to speed with the new QML GUI.
+
+ObdMate:
+Status string for displaying hardware status (OBD_STATUS_TEXT)
+Tool version string (OBD_TOOL_VERSION)
+
+FuelPrices:
+Parsing fixes for new website.
+Complex lists for new GUI
+
+GPSReader:
+Didn't work at all, that's fixed now.
+GPS_STATUS_STRING for displaying hardware connection information
+Logging implemented, setting "logging=true"
+
+MediaLibrary:
+New Database system, allows for multiple directories
+Better tag scanning and library handling.
+Status of tag reading/media scanning for GUI (Media_Scanner_Progress)
+
+RadioPal:
+Fixed to work with new GUI system
+
+SystemInfo:
+Functionality implemented, still limited to Linux.
+
+WindowManagerQML:
+Assortment of fixes for lists/complex lists.
+
+
+0.6:
+Initial release of new QML GUI

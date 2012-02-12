@@ -1,0 +1,30 @@
+<settings debug="false">
+	<plugin name="RevGPSReader">
+		<setting comport="/dev/ttyUSB0" id="0"/>
+	</plugin>
+	<plugin name="RevMediaLibrary">
+		<multisetting musicdir="/home/michael/Music" id="1"/>
+		<multisetting musicdir="/media/2C884EDF884EA6E4/Mp3" id="2"/>
+		<multisetting videodir="/home/michael/Videos" id="1"/>
+		<multisetting videodir="/media/FreeAgentGo/Movies" id="2"/>
+	</plugin>
+	<plugin name="RevOBD2">
+		<setting comport="/dev/pts/2" id="0"/>
+		<setting start="false" id="0"/>
+		<setting baud="9600" id="0"/>
+		<multisetting value="010C" id="1"/>
+		<multisetting value="010D" id="2"/>
+	</plugin>
+	<plugin name="RevHDRadio">
+		<setting comport="COM1" id="0"/>
+		<setting preset1="93.7" id="0"/>
+		<setting preset2="97.9" id="0"/>
+		<setting preset3="98.5" id="0"/>
+		<setting preset4="100.7" id="0"/>
+		<setting preset5="101.1" id="0"/>
+		<setting preset6="101.3" id="0"/>
+	</plugin>
+	<plugin name="SiriusRadio">
+		<setting comport="COM8" id="0"/>
+	</plugin>
+</settings>

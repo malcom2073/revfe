@@ -1,0 +1,3 @@
+<settings plugin="GPSReader">
+	<setting key="comport" value="/dev/ttyUSB0" type="string"/>
+</settings>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><skin>
+	<pagelist name="apps" filename="appfiles" main="main.qml" x="0" y="0" width="800" height="600" type="real">
+	</pagelist>
+	<pagelist name="top" filename="topfiles" main="" x="0" y="0" width="0" height="0" type="virtual">
+		<page name="Music Player" file="music.qml"/>
+		<page name="Video Player" file="video.qml"/>
+		<page name="OBD2" file="obd2.qml"/>
+		<page name="Fuel Prices" file="fuelprices.qml"/>
+		<page name="AutoAppMart" file="autoappmart.qml"/>
+	</pagelist>
+	<pagelist name="addons" filename="addonfiles" main="" x="0" y="0" width="0" height="0" type="virtual">
+		<page name="HD Radio" file="hdradio.qml"/>
+	</pagelist>
+	<pagelist name="bottom" filename="bottomfiles" main="" x="0" y="0" width="0" height="0" type="virtual">
+		<page name="SystemInfo" file="systeminfo.qml"/>
+		<page name="Utilities" file="utilities.qml"/>
+		<page name="Settings" file="settings.qml"/>
+		<page name="Exit" file="exit.qml"/>
+	</pagelist>
+</skin>

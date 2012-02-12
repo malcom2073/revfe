@@ -1,0 +1,13 @@
+Source: revfe
+Section: unknown
+Priority: extra
+Maintainer: Michael <mcarpenter@interforcesystems.com>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.8.1
+Homepage: <insert the upstream URL, if relevant>
+
+Package: revfe
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends} libqt4-gui, libqt4-opengl, libqt4-phonon, libqt4-sql-sqlite, libqt4-xml, libqtcore4, phonon-backend-gstreamer, libqt4-phonon, libphonon4, libtag1c2a
+Description: RevFE, cross platform Frontend
+ RevFE - Cross platform Automobile Entertainment and Information application for use in a CarPC environment

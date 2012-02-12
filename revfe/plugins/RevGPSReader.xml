@@ -1,0 +1,3 @@
+<settings plugin="RevGPSReader">
+	<setting key="comport" value="/dev/ttyUSB0" type="string"/>
+</settings>

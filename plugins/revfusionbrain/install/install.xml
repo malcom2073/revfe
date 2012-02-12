@@ -1,0 +1,6 @@
+<install>
+	<files count="2">
+		<file name="libRevFusionBrainPlugin.so" target="%REVFEDIR%/plugins"/>
+		<skin name="Fusion Brain" file="fusionbrain.qml" target="addons"/>
+	</files>
+</install>

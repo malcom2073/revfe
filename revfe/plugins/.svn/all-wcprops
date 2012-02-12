@@ -1,0 +1,41 @@
+K 25
+svn:wc:ra_dav:version-url
+V 49
+/svnroot/carpal/!svn/ver/157/trunk/CarPal/plugins
+END
+WindowManager.xml
+K 25
+svn:wc:ra_dav:version-url
+V 67
+/svnroot/carpal/!svn/ver/157/trunk/CarPal/plugins/WindowManager.xml
+END
+MediaLibrary.xml
+K 25
+svn:wc:ra_dav:version-url
+V 66
+/svnroot/carpal/!svn/ver/146/trunk/CarPal/plugins/MediaLibrary.xml
+END
+ObdMate.xml
+K 25
+svn:wc:ra_dav:version-url
+V 61
+/svnroot/carpal/!svn/ver/147/trunk/CarPal/plugins/ObdMate.xml
+END
+RadioPal.xml
+K 25
+svn:wc:ra_dav:version-url
+V 62
+/svnroot/carpal/!svn/ver/136/trunk/CarPal/plugins/RadioPal.xml
+END
+GPSReader.xml
+K 25
+svn:wc:ra_dav:version-url
+V 63
+/svnroot/carpal/!svn/ver/136/trunk/CarPal/plugins/GPSReader.xml
+END
+SiriusRadio.xml
+K 25
+svn:wc:ra_dav:version-url
+V 65
+/svnroot/carpal/!svn/ver/146/trunk/CarPal/plugins/SiriusRadio.xml
+END

@@ -1,0 +1,3 @@
+<settings plugin="SiriusRadio">
+	<setting key="comport" value="COM8" type="string"/>
+</settings>

@@ -1,0 +1,6 @@
+<settings plugin="RevOBD2">
+	<setting key="comport" value="/dev/pts/2" type="string"/>
+	<setting key="start" value="true" type="bool"/>
+	<setting key="baud" value="9600" type="int"/>
+	<multisetting key="value" id="1" value="010C" type="string"/>
+</settings>

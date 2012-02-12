@@ -1,0 +1,4 @@
+<settings plugin="RevAutoAppMart">
+	<setting key="username" value="username" type="string"/>
+	<setting key="password" value="password" type="string"/>
+</settings>

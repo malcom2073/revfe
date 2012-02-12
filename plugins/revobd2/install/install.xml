@@ -1,0 +1,7 @@
+<install>
+	<files count="3">
+		<file name="libRevOBD2Plugin.so" target="%REVFEDIR%/plugins"/>
+		<file name="RevOBD2.xml" target="%REVFEDIR%/plugins"/>
+		<skin name="OBD 2 Gauges" file="obd2.qml" target="addons"/>
+	</files>
+</install>

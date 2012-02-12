@@ -1,0 +1,5 @@
+revfe (0.44-1) unstable; urgency=low
+
+  * Initial release (Closes: #nnnn)  <nnnn is the bug number of your ITP>
+
+ -- Michael <mcarpenter@interforcesystems.com>  Sun, 14 Feb 2010 12:03:33 -0500

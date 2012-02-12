@@ -1,0 +1,4 @@
+<settings plugin="WindowManager">
+	<setting key="skindir" value="default" type="string"/>
+	<setting key="opengl" value="false" type="string"/>
+</settings>

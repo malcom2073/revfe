@@ -1,0 +1,4 @@
+<settings plugin="RevMediaLibrary">
+	<multisetting key="musicdir" id="1" value="~/Music" type="string"/>
+	<multisetting key="videodir" id="1" value="~/Videos" type="string"/>
+</settings>

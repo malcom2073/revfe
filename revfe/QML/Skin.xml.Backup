@@ -1,0 +1,25 @@
+<skin>
+	<pagelist name="apps" filename="appfiles" main="main.qml" type="real" x="0" y="0" width="800" height="600">
+	</pagelist>
+	<pagelist name="top" filename="topfiles" main="" type="virtual" x="0" y="0" width="0" height="0">
+		<page name="Music Player" file="music.qml"/>
+		<page name="Video Player" file="video.qml"/>
+		<!--<page name="GPS Status" file="gps.qml"/>-->
+		<!--<page name="Maps" file="map.qml"/>-->
+		<!--<page name="Media Library" file="media.qml"/>-->
+		<!--<page name="OBD2" file="obd2.qml"/>-->
+		<!--<page name="Radio" file="hdradio.qml"/>-->
+		<!--<page name="Fuel Prices" file="fuelprices.qml"/>-->
+		<page name="AutoAppMart" file="autoappmart.qml"/>
+	</pagelist>
+	<pagelist name="addons" filename="addonfiles" main="" type="virtual" x="0" y="0" width="0" height="0">
+	</pagelist>
+	<pagelist name="bottom" filename="bottomfiles" main="" type="virtual" x="0" y="0" width="0" height="0">
+		<page name="SystemInfo" file="systeminfo.qml"/>
+		<page name="Utilities" file="utilities.qml"/>
+		<page name="Settings" file="settings.qml"/>
+		<page name="Exit" file="exit.qml"/>
+	</pagelist>
+	<!--<pagelist name="second" filename="secondfiles" main="second.qml" x="1000" y="0" width="800" height="600">
+	</pagelist>-->
+</skin>

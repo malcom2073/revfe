@@ -1,0 +1,7 @@
+<install>
+	<files count="3">
+		<file name="libRevHDRadioPlugin.so" target="%REVFEDIR%/plugins"/>
+		<file name="RevHDRadio.xml" target="%REVFEDIR%/plugins"/>
+		<skin name="HD Radio" file="hdradio.qml" target="addons"/>
+	</files>
+</install>
