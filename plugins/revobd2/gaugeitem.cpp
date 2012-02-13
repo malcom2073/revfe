@@ -764,6 +764,34 @@ void GaugeItem::paint(QPainter *tmpPainter, const QStyleOptionGraphicsItem *styl
 	else if (m_style == 3)
 	{
 		tmpPainter->drawImage(0,0,*_bgImage);
+		double _valueInRadi = (((_value * ((_scaleEndAngle - _scaleStartAngle)/(_maxValue-_minValue))) + 90 + _scaleStartAngle) * (M_PI / 180.0));
+		double x=0;
+		double y=0;
+		if (_reverseOrder)
+		{
+			x = (float)(0 + (((this->width() / 2) - 31) *      cos(0 - (float)_valueInRadi + (180 * M_PI / 180)) *      cos((float)0)) - (((this->width() / 2) - 31) *      sin(0 - (float)_valueInRadi + (180 * M_PI / 180)) *      sin((float)0)));
+		  //x = (float)(0 + (((this.Width    / 2) - 31) * Math.Cos(0 - _valueInRadi) * Math.Cos(0)) - (((this.Width    / 2) - 31) * Math.Sin(0 - _valueInRadi) * Math.Sin(0));
+			y = (float)(0 + (((this->height() / 2) - 31) *      sin(((float)0) - _valueInRadi + (180 * M_PI / 180)) *      cos((float)0)) + (((this->height() / 2) - 31) *      cos(((float)0) - _valueInRadi + (180 * M_PI / 180)) *      sin((float)0)));
+		  //y = (float)(0 + (((this.Height    / 2) - 31) * Math.Sin((0) - _valueInRadi) * Math.Cos(0)) + (((this.Height    / 2) - 31) * Math.Cos((0) - _valueInRadi) * Math.Sin(0)));
+		}
+		else
+		{
+			x = (float)(0 + (((this->width() / 2) - 31) * cos(_valueInRadi)) - (((this->width() / 2) - 31) * sin(_valueInRadi) * sin(0 * M_PI / 180)));
+			y = (float)(0 + (((this->height() / 2) - 31) * sin(_valueInRadi)) + (((this->height() / 2) - 31) * cos(_valueInRadi) * sin(0 * M_PI / 180)));
+		}
+		tmpPainter->setPen(needleCenterOutlinePen);
+		tmpPainter->setBrush(QBrush(QColor(100,100,100)));
+		tmpPainter->drawEllipse((this->width() / 2)-(this->width() / 10),(this->height() / 2) - (this->height() / 10),this->width() / 5,this->height() / 5);
+
+		tmpPainter->setPen(needleOutlinePen);
+		tmpPainter->drawLine(this->width()/2,this->height()/2,this->width()/2 + x,this->height()/2 + y);
+		tmpPainter->setPen(needlePen);
+		tmpPainter->drawLine(this->width()/2,this->height()/2,this->width()/2 + x,this->height()/2 + y);
+
+		tmpPainter->setPen(needleCenterPen);
+		tmpPainter->setBrush(QBrush(Qt::SolidPattern));
+		tmpPainter->drawEllipse((this->width() / 2)-(this->width() / 16),(this->height() / 2) - (this->height() / 16),this->width() / 8,this->height() / 8);
+
 	}
 }
 void GaugeItem::setValue(double value)

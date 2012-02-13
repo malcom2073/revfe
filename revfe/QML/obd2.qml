@@ -56,62 +56,72 @@ Window {
 			text: propertyMap.OBD_TOOL_VERSION
 		}
 	}
+	Component.onCompleted: {
+		window.passMessage("RevOBD2:obd add !010C!");
+		window.passMessage("RevOBD2:obd add !010D!");
+		window.passMessage("RevOBD2:obd add !0105!");
+		window.passMessage("RevOBD2:obd add !0110!");
+	}
 
 	GaugeItem {
 		id: speedGauge
 		x: 0
-		y: 0
+		y: 275
 		m_style: 3
-		width:300
-		height:300
-		startAngle:0
-		endAngle:180
-		minimum: 10
-		maximum: 110
-		m_value: propertyMap.OBD_010D
-	}
-	GaugeItem {
-		//id: speedGauge
-		x: 0
-		y: 300
-		width:300
-		height:300
-		m_style: 3
-		startAngle:180
-		endAngle:360
-		minimum: 10
-		maximum: 110
-		m_value: propertyMap.OBD_010D
+		width:350
+		height:350
+		startAngle:45
+		endAngle:315
+		minimum: 0
+		maximum: 140
+		numLabels: 7
+		Behavior on m_value {  PropertyAnimation { properties: "m_value"; duration: (propertyMap["OBD_010D_DURATION"] ? propertyMap["OBD_010D_DURATION"] : 500) } }
+		m_value: (propertyMap["OBD_010D"] ? propertyMap["OBD_010D"] : 0)
 	}
 	GaugeItem {
 		id: rpmGauge
 		m_style: 3
-		x:300
-		y:0
-		width:300
-		height:300
-		minimum: 1000
-		startAngle: -45
-		endAngle: 45
+		x:350
+		y:275
+		width:350
+		height:350
+		minimum: 0
+		numLabels: 7
+		startAngle: 45
+		endAngle: 315
 		maximum: 7000
-		m_value: propertyMap.OBD_010C
+		Behavior on m_value {  PropertyAnimation { properties: "m_value"; duration: (propertyMap["OBD_010C_DURATION"] ? propertyMap["OBD_010C_DURATION"] : 500) } }
+		m_value: (propertyMap["OBD_010C"] ? propertyMap["OBD_010C"] : 0)
 	}
 	GaugeItem {
-		//id: speedGauge
-		x: 300
-		y: 300
+		id: mafGauge
+		x: 375
+		y: 60
+		width:200
+		height:200
 		m_style: 3
-		width:300
-		height:300
-		startAngle:90
-		endAngle:270
-		minimum: 10
-		maximum: 110
-		m_value: propertyMap.OBD_010D
+		startAngle:360
+		endAngle:180
+		numLabels: 3
+		minimum: 0
+		maximum: 600
+		Behavior on m_value {  PropertyAnimation { properties: "m_value"; duration: (propertyMap["OBD_010D_DURATION"] ? propertyMap["OBD_010D_DURATION"] : 500) } }
+		m_value: (propertyMap["OBD_0110"] ? propertyMap["OBD_0110"] : 0)
 	}
-	Component.onCompleted:
-	{
-		//speedGauge.value = 0;
+	GaugeItem {
+		id: tempGauge
+		x: 325
+		y: 60
+		m_style: 3
+		width:200
+		height:200
+		startAngle:0
+		endAngle:180
+		numLabels: 5
+		minimum: 0
+		maximum: 200
+		Behavior on m_value {  PropertyAnimation { properties: "m_value"; duration: (propertyMap["OBD_0105_DURATION"] ? propertyMap["OBD_0105_DURATION"] : 500) } }
+		m_value: (propertyMap["OBD_0105"] ? propertyMap["OBD_0105"] : 0)
 	}
 }
 

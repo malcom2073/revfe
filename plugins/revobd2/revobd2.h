@@ -42,6 +42,7 @@ private:
 	QString m_name;
 	ObdThread *obdThread;
 	QList<uint> responseTimes;
+	QMap<QString,ulong> pidResponseTimes;
 	QList<QPair<QString,QString> > reqListValues;
 	QList<ObdThread::RequestClass> requestList;
 	uint averageMsPerPing;

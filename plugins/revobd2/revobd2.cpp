@@ -35,47 +35,14 @@ OBD2::OBD2()
 void OBD2::init()
 {
 	qmlRegisterType<GaugeItem>("GaugeItem",0,1,"GaugeItem");
-	/*reqListValues.append(QPair<QString,QString>("obdinfo:rpm","010C"));
-	reqListValues.append(QPair<QString,QString>("obdinfo:vehspeed","010D"));
-	reqListValues.append(QPair<QString,QString>("obdinfo:watertemp","0105"));
-	reqListValues.append(QPair<QString,QString>("obdinfo:load","0104"));
-	reqListValues.append(QPair<QString,QString>("obdinfo:maf","0110"));
-	*/
 
-	/*QFile xmlfile("obd.xml");
-	xmlfile.open(QIODevice::ReadOnly);
-	QString xmlstring = xmlfile.readAll();
-	xmlfile.close();
-
-	QXmlStreamReader xml(xmlstring);
-	while (!xml.atEnd())
-	{
-		if (xml.name() == "value" && xml.isStartElement())
-		{
-			ObdThread::RequestClass req;
-			QString mode = xml.attributes().value("mode").toString();
-			req.mode = ObdInfo::intFromHex(mode);
-			QString pid = xml.attributes().value("pid").toString();
-			req.pid = ObdInfo::intFromHex(pid);
-			int priority = xml.attributes().value("priority").toString().toInt();
-			int wait = xml.attributes().value("wait").toString().toInt();
-			req.priority = priority;
-			req.wait = wait;
-			req.type = ObdThread::MODE_PID;
-			req.repeat = true;
-			requestList.append(req);
-			qDebug() << "OBD Pid added to ObdMate:" << mode << req.mode << pid << req.pid;
-		}
-		xml.readNext();
-	}
-	*/
 	responseTimer = new QTimer(this);
 	connect(responseTimer,SIGNAL(timeout()),this,SLOT(responseTimerTick()));
 
 	qRegisterMetaType<variantStruct>("variantStruct");
 	obdThread = new ObdThread();
 
-	connect(obdThread,SIGNAL(pidReceived(QString,QString,int,double)),this,SLOT(obdValueReceived(QString,QString,int,double)));
+	connect(obdThread,SIGNAL(pidReply(QString,QString,int,double)),this,SLOT(obdValueReceived(QString,QString,int,double)));
 	connect(obdThread,SIGNAL(connected(QString)),this,SLOT(obdThreadConnected(QString)));
 	connect(obdThread,SIGNAL(disconnected()),this,SLOT(obdThreadDisconnected()));
 
@@ -164,7 +131,7 @@ void OBD2::passPluginMessage(QString sender,IPCMessage message)
 						req.wait = 1;
 						req.type = ObdThread::MODE_PID;
 						req.repeat = true;
-						requestList.append(req);
+						//requestList.append(req);
 						qDebug() << "ObdMate.cpp: OBD Pid added to ObdMate:" << req.mode << req.pid;
 						emit passCoreMessage(m_name,IPCMessage("core","event","throw",QStringList() << "event:propertyset" << "1" << "OBD_" + value.split("=")[1] << "0"));
 
@@ -211,6 +178,12 @@ void OBD2::passPluginMessage(QString sender,IPCMessage message)
 	{
 		if (message.getMethod() == "add")
 		{			
+			if (message.getArgs().size() > 0)
+			{
+				unsigned char mode = obdLib::byteArrayToByte(message.getArgs()[0][0].toAscii(),message.getArgs()[0][1].toAscii());
+				unsigned char pid = obdLib::byteArrayToByte(message.getArgs()[0][2].toAscii(),message.getArgs()[0][3].toAscii());
+				obdThread->addRequest(mode,pid,1,0);
+			}
 		}
 		else if (message.getMethod() == "start")
 		{
@@ -262,8 +235,15 @@ void OBD2::responseTimerTick()
 }
 void OBD2::obdValueReceived(QString pid,QString val,int set,double time)
 {
+	//OBD_010D_DURATION
 	Q_UNUSED(time);
-	//qDebug() << "Pid received" << pid << val;
+	if (!pidResponseTimes.contains(pid))
+	{
+		pidResponseTimes[pid] = QDateTime::currentDateTime().currentMSecsSinceEpoch();
+	}
+	ulong durval = QDateTime::currentDateTime().currentMSecsSinceEpoch() - pidResponseTimes[pid];
+	pidResponseTimes[pid] = QDateTime::currentDateTime().currentMSecsSinceEpoch();
+	emit passCoreMessage(m_name,IPCMessage("core","event","throw",QStringList() << "event:propertyset" << "1" << QString("OBD_") + pid + "_DURATION" << QString::number(durval)));
 	responseTimes.append(QDateTime::currentDateTime().toTime_t() - currentTicks);
 	currentTicks = QDateTime::currentDateTime().toTime_t();
 	emit passCoreMessage(m_name,IPCMessage("core","event","throw",QStringList() << "event:propertyset" << "1" << QString("OBD_") + pid << val));
