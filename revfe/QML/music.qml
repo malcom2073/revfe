@@ -24,6 +24,8 @@ import "Window"
 //import "components"
 import "Button"
 import "TextBox"
+import "Style"
+
 Window {
 	name: "mediaplayer"
 	id: mediaplayer
@@ -31,6 +33,7 @@ Window {
 	y: 0
 	width: 924
 	height: 600
+	Style { id: style }
 
 
 	TextBox {
@@ -60,15 +63,18 @@ Window {
 		y:50
 		width:500
 		height:400
-		radius:20
+		radius:style.listBorderRadius
 		color: "orange"
 	        Rectangle {
 			x:5
 			y:5
 			width:490
 			height: 390
-			color: "grey"
-			radius: 20
+			gradient: Gradient {
+				GradientStop { position: 0.0; color: style.listBgTopColor }
+				GradientStop { position: 1.0; color: style.listBgBottomColor }
+			}
+			radius: style.listBorderRadius
 		}
 	}
 	property int volSliderDummyValue: volSlider.value //Stupid hack to make onValueChanged event work

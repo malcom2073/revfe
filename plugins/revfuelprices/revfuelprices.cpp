@@ -166,11 +166,12 @@ void FuelPrices::passPluginMessage(QString sender,IPCMessage message)
 			//QList<QList<QString> > data;
 			QHash<int,QByteArray> roles;
 			//QStringList roles;
-			roles[0] = "Station_Name";
-			roles[1] = "Station_Address";
-			roles[2] = "Regular";
-			roles[3] = "Midgrade";
-			roles[4] = "Premium";
+			roles[0] = "text";
+			roles[1] = "Station_Name";
+			roles[2] = "Station_Address";
+			roles[3] = "Regular";
+			roles[4] = "Midgrade";
+			roles[5] = "Premium";
 			//fuelModel->setRoles(roles);
 			//fuelModel->setData(data);
 			//*/
@@ -222,7 +223,7 @@ void FuelPrices::replyFinished(QNetworkReply* reply)
 		}
 		else
 		{
-			int initial = rep.indexOf("<div id=\"TABLE_GRID_57\" class=\"pad_l pad_r\"  >");
+			int initial = rep.indexOf("<div id=\"TABLE_GRID_"); //57\" class=\"pad_l pad_r\"  >");
 			//int start = rep.indexOf("<b>",initial);
 			//int end = rep.indexOf("</b>",initial);
 			//int initialdate = rep.indexOf("<td id=\"ctl00_PlaceHolderWideTopColumn_ctl00_ctl00_tdCopy\" class=\"sz11 capitalize w560\">",initial) + 102;
@@ -312,11 +313,11 @@ void FuelPrices::replyFinished(QNetworkReply* reply)
 					QStandardItem *item = new QStandardItem();
 					//qDebug() << "Station" << gasStations[j]->name << gasStations[j]->location << gasStations[j]->reg << gasStations[j]->mid << gasStations[j]->pre;
 					QStringList list;
-					item->setData(gasStations[j]->name,0);
-					item->setData(gasStations[j]->location,1);
-					item->setData(gasStations[j]->reg,2);
-					item->setData(gasStations[j]->mid,3);
-					item->setData(gasStations[j]->pre,4);
+					item->setData(gasStations[j]->name,1);
+					item->setData(gasStations[j]->location,2);
+					item->setData(gasStations[j]->reg,3);
+					item->setData(gasStations[j]->mid,4);
+					item->setData(gasStations[j]->pre,5);
 					/*list << gasStations[j]->name;
 					list << gasStations[j]->location;
 					list << gasStations[j]->reg;
@@ -357,6 +358,6 @@ void FuelPrices::replyFinished(QNetworkReply* reply)
 		}
 		reqType = 0;
 	}
-	reply->deleteLater();
+//	reply->deleteLater();
 }
 Q_EXPORT_PLUGIN2(FuelPricesPlugin, FuelPrices)

@@ -69,11 +69,18 @@ Window {
 			Item {
 				width: 75
 				height:30
-				Text {
-					color: "black"
-					font.pixelSize: 20
+
+				MouseArea {
 					anchors.fill: parent
-					text: ".." + model.Station_Name + ((model.Station_Name.length > 8) ? "\t" : "\t\t") + model.Regular + "\t\t" + model.Midgrade + "\t\t" + model.Premium
+					Text {
+						color: "black"
+						font.pixelSize: 20
+						anchors.fill: parent
+						text: model.Station_Name + ((model.Station_Name.length > 8) ? "\t" : "\t\t") + model.Regular + "\t\t" + model.Midgrade + "\t\t" + model.Premium
+					}
+					onClicked: {
+						console.log("Clicked: " + model.Station_Address);
+					}
 				}
 			}
 		}

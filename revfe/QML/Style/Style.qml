@@ -7,17 +7,24 @@ QtObject {
 
 	//Button properties
 	property color buttonBgColor: "black"
-	property color buttonOutlineColor: "red"
+	property color buttonOutlineColor: "grey"
 	property color buttonTextColor: globalTextColor
 	property int buttonTextSize:  globalTextSize
 	property string buttonFontName: globalFontName
 	property int buttonBorderSize: 5
-	property int buttonBorderRadius: 10
+	property int buttonBorderRadius: 20
+	property color buttonBgTopColor: "grey";
+	property color buttonBgBottomColor: "black";
 
 	//Textbox properties
 	property int textBoxTextSize:  globalTextSize
 	property string textBoxFontName: globalFontName
 	property color textBoxTextColor: globalTextColor
+
+	//Listbox properties
+	property color listBgTopColor: "dark grey"
+	property color listBgBottomColor: "light grey"
+	property int listBorderRadius: 50
 
 
 }

@@ -5,14 +5,18 @@ Rectangle {
 	signal clicked();
 	property string text: "";
 	color: style.buttonOutlineColor
-	radius: 10
+	radius: style.buttonBorderRadius
 	Rectangle {
-		x: 5
-		y: 5
-		width:parent.width-10
-		height:parent.height-10
+		x: 1
+		y: 1
+		width:parent.width-3
+		height:parent.height-3
 		radius: style.buttonBorderRadius
 		color: style.buttonBgColor
+		gradient: Gradient {
+			GradientStop { position: 0.0; color: style.buttonBgTopColor }
+			GradientStop { position: 1.0; color: style.buttonBgBottomColor }
+		}
 		MouseArea {
 			anchors.fill: parent
 			Text {
