@@ -1,6 +1,6 @@
 #include "standardmodel.h"
 
-StandardModel::StandardModel(const QHash<int, QByteArray> &roleNames)
+StandardModel::StandardModel(const QHash<int, QByteArray> &roleNames) : QStandardItemModel()
 {
 	setRoleNames(roleNames);
 }

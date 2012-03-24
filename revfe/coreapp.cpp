@@ -48,7 +48,6 @@ CoreApp::CoreApp()
 
 	QCoreApplication::setApplicationName("CarPal");
 
-	//Absolutly STUPID workaround, required when KDE's Qt is in use.
 
 	eng = new QScriptEngine(this);
 	connect(QApplication::instance(),SIGNAL(commitDataRequest(QSessionManager &)),this,SLOT(dataRequest(QSessionManager &))); 
@@ -369,7 +368,8 @@ CoreApp::CoreApp()
 				tmpClass->startUnThreaded();
 			}
 */
-			tmpClass->startThreaded();
+			tmpClass->startUnThreaded();
+			//tmpClass->startThreaded();
 		}
 	}
 	/*
@@ -463,6 +463,46 @@ CoreApp::CoreApp()
 	for (int i=0;i<m_windowList.size();i++)
 	{
 		QMetaObject::invokeMethod(m_windowList[i]->rootObject(),"loadComplete");
+	}
+
+	for (int j=0;j<settings.m_pluginList.size();j++)
+	{
+		qDebug() << "Setting:" << j << "of" << settings.m_pluginList.size();
+		QString name = settings.m_pluginList[j];
+		if (!QMetaObject::invokeMethod(m_windowList[0]->rootObject(),"addSettingsPage",Q_ARG(QVariant,QVariant(name))))
+		{
+
+		}
+		for (int k=0;k<settings.m_keyList[name].size();k++)
+		{
+			if (settings.m_settingsMap[name].contains(settings.m_keyList[name][k]))
+			{
+				QString setting = settings.m_settingsMap[name][settings.m_keyList[name][k]].key;
+				QString value = settings.m_settingsMap[name][settings.m_keyList[name][k]].value;
+				QString type = settings.m_settingsMap[name][settings.m_keyList[name][k]].type;
+				QString id = "0";
+				if (!QMetaObject::invokeMethod(m_windowList[0]->rootObject(),"addSettingsValue",Q_ARG(QVariant,QVariant(name)),Q_ARG(QVariant,QVariant(setting)),Q_ARG(QVariant,QVariant(value)),Q_ARG(QVariant,QVariant(type)),Q_ARG(QVariant,QVariant(id))))
+				{
+
+				}
+			}
+			else if (settings.m_multiSettingsMap[name].contains(settings.m_keyList[name][k]))
+			{
+				for (int l=0;l<settings.m_multiSettingsMap[name][settings.m_keyList[name][k]].size();l++)
+				{
+					QString setting = settings.m_multiSettingsMap[name][settings.m_keyList[name][k]][l].key;
+					QString value = settings.m_multiSettingsMap[name][settings.m_keyList[name][k]][l].value;
+					QString type = settings.m_multiSettingsMap[name][settings.m_keyList[name][k]][l].type;
+					QString id = QString::number(settings.m_multiSettingsMap[name][settings.m_keyList[name][k]][l].id);
+					if (!QMetaObject::invokeMethod(m_windowList[0]->rootObject(),"addSettingsValue",Q_ARG(QVariant,QVariant(name)),Q_ARG(QVariant,QVariant(setting)),Q_ARG(QVariant,QVariant(value)),Q_ARG(QVariant,QVariant(type)),Q_ARG(QVariant,QVariant(id))))
+					{
+
+					}
+
+				}
+			}
+
+		}
 	}
 }
 void CoreApp::passedCoreGUIItem(QObject *item)
@@ -908,6 +948,8 @@ void CoreApp::passedCoreMessage(QString sender,IPCMessage message,bool blocking)
 				}
 				if (all)
 				{
+					if (0)
+					{
 					for (int j=0;j<settings.m_pluginList.size();j++)
 					{
 						qDebug() << "Setting:" << j << "of" << settings.m_pluginList.size();
@@ -947,7 +989,7 @@ void CoreApp::passedCoreMessage(QString sender,IPCMessage message,bool blocking)
 
 						}
 					}
-
+}
 					for (int i=0;i<pluginList.size();i++)
 					{
 					}
