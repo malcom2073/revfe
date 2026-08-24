@@ -431,6 +431,64 @@ class IncusProvider:
             if m.get("type") != "loopback"
         ]
 
+    def storage_overview(self) -> list[dict[str, Any]]:
+        pools = self._request("GET", "/1.0/storage-pools", params={"recursion": 1})
+        try:
+            images = {img.fingerprint: img for img in self.list_images()}
+        except ProviderError:
+            images = {}
+
+        def resolve_image(volume_name: str) -> str | None:
+            for fp, img in images.items():
+                if fp.startswith(volume_name) or volume_name.startswith(fp):
+                    return img.description or img.fingerprint[:12]
+            return None
+
+        overview = []
+        for p in pools:
+            pool_name = p.get("name", "")
+            volumes_meta = self._request(
+                "GET",
+                f"/1.0/storage-pools/{pool_name}/volumes",
+                params={"recursion": 1},
+            )
+            volumes = []
+            for v in volumes_meta or []:
+                vtype = v.get("type", "")
+                entry = {
+                    "name": v.get("name", ""),
+                    "type": vtype,
+                    "contentType": v.get("content_type", ""),
+                }
+                if vtype == "image":
+                    entry["imageDescription"] = resolve_image(entry["name"])
+                volumes.append(entry)
+            usage = None
+            try:
+                resources = self._request(
+                    "GET", f"/1.0/storage-pools/{pool_name}/resources"
+                )
+                space = resources.get("space") or {}
+                if space.get("total"):
+                    usage = {
+                        "used": space.get("used"),
+                        "total": space.get("total"),
+                    }
+            except ProviderError:
+                pass  # older daemons without the resources endpoint
+            overview.append(
+                {
+                    "name": pool_name,
+                    "driver": p.get("driver", ""),
+                    "description": p.get("description") or "",
+                    "status": p.get("status", ""),
+                    "usedByCount": len(p.get("used_by") or []),
+                    "usage": usage,
+                    "volumes": volumes,
+                }
+            )
+        return overview
+
     def exec_bridge(self, name: str, browser_ws, shell: str) -> None:
         payload = {
             "command": [shell],

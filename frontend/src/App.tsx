@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Instances from "./pages/Instances";
 import InstanceDetail from "./pages/InstanceDetail";
 import Images from "./pages/Images";
+import Storage from "./pages/Storage";
 
 export default function App() {
   return (
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/instances" element={<Instances />} />
           <Route path="/instances/:name" element={<InstanceDetail />} />
           <Route path="/images" element={<Images />} />
+          <Route path="/storage" element={<Storage />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>

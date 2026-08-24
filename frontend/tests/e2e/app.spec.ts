@@ -349,6 +349,36 @@ test("images page catalog is cached, searchable, and downloads on demand", async
   await expect(main.getByText("Downloading images:ubuntu/24.04")).toBeVisible();
 });
 
+test("storage page shows pools and maps image volumes", async ({ page }) => {
+  await installApiMocks(page);
+
+  // Storage is reachable from the nav
+  await page.goto("/");
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: /Storage/ })
+    .click();
+  await expect(page.getByRole("heading", { name: "Storage" })).toBeVisible();
+
+  const main = page.getByRole("main");
+  await expect(main.getByText("btrfs")).toBeVisible(); // driver badge
+  await expect(main.getByText(/5 volumes/)).toBeVisible();
+  await expect(main.getByText(/used by 7 resources/)).toBeVisible();
+  await expect(main.getByText("Space")).toBeVisible();
+  await expect(main.getByText(/4.4 GiB of 850.8 GiB/)).toBeVisible();
+
+  const table = main.getByRole("grid");
+  // Image volumes resolve to human descriptions when known…
+  await expect(table.getByText("Ubuntu 24.04 LTS")).toBeVisible();
+  // …and fall back to short fingerprints for unknown images
+  await expect(table.getByText("abc123def456 (image)")).toBeVisible();
+  // Instance + custom volumes render with type badges
+  await expect(table.getByText("web-01")).toBeVisible();
+  await expect(table.getByText("backup-vol")).toBeVisible();
+  await expect(table.getByText("CT", { exact: true })).toBeVisible();
+  await expect(table.getByText("VM", { exact: true })).toBeVisible();
+});
+
 test("stopped instance detail offers Start button and blocks console", async ({
   page,
 }) => {

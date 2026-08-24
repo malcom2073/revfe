@@ -17,12 +17,14 @@ def create_app() -> Flask:
 
     from .api.events import events_bp
     from .api.instances import instance_exec, instances_bp
+    from .api.storage import storage_bp
     from .api.system import system_bp
 
     prefix = config.API_PREFIX
     app.register_blueprint(system_bp, url_prefix=f"{prefix}")
     app.register_blueprint(instances_bp, url_prefix=f"{prefix}/instances")
     app.register_blueprint(events_bp, url_prefix=f"{prefix}/events")
+    app.register_blueprint(storage_bp, url_prefix=f"{prefix}/storage")
     sock.route(f"{prefix}/instances/<name>/exec")(instance_exec)
 
     @app.errorhandler(ProviderError)

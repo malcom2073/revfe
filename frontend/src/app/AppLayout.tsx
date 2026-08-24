@@ -31,7 +31,7 @@ const navItems = [
   { label: "Dashboard", to: "/", icon: <ServerIcon /> },
   { label: "Instances", to: "/instances", icon: <CubesIcon /> },
   { label: "Images", to: "/images", icon: <LayerGroupIcon />, disabled: false },
-  { label: "Storage", to: "/storage", icon: <DatabaseIcon />, disabled: true },
+  { label: "Storage", to: "/storage", icon: <DatabaseIcon />, disabled: false },
   { label: "Networks", to: "/networks", icon: <NetworkWiredIcon />, disabled: true },
   { label: "Settings", to: "/settings", icon: <CogIcon />, disabled: true },
 ];

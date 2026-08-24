@@ -131,6 +131,34 @@ export const mockRemoteCatalog = {
   ],
 };
 
+export const mockStorage = [
+  {
+    name: "default",
+    driver: "btrfs",
+    description: "",
+    status: "Created",
+    usedByCount: 7,
+    usage: { used: 4_771_487_744, total: 913_557_159_936 },
+    volumes: [
+      { name: "web-01", type: "container", contentType: "filesystem" },
+      {
+        name: FULL_FP,
+        type: "image",
+        contentType: "block",
+        imageDescription: "Ubuntu 24.04 LTS",
+      },
+      {
+        name: "abc123def456000",
+        type: "image",
+        contentType: "filesystem",
+        imageDescription: undefined,
+      },
+      { name: "debian-vm", type: "virtual-machine", contentType: "block" },
+      { name: "backup-vol", type: "custom", contentType: "filesystem" },
+    ],
+  },
+];
+
 export const mockRunningOps = [
   {
     id: "op-existing-1",
@@ -251,6 +279,7 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
   await page.route("**/api/v1/remote-images", (route) =>
     json(route, { fetchedAt: null, images: [] })
   );
+  await page.route("**/api/v1/storage", (route) => json(route, mockStorage));
   await page.route("**/api/v1/events*", async (route) => {
     if (sseDelayMs > 0) {
       await new Promise((r) => setTimeout(r, sseDelayMs));

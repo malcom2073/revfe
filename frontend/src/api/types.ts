@@ -77,6 +77,23 @@ export interface RemoteCatalog {
   images: RemoteImage[];
 }
 
+export interface StorageVolume {
+  name: string;
+  type: "container" | "virtual-machine" | "image" | "custom" | string;
+  contentType: string;
+  imageDescription?: string;
+}
+
+export interface StoragePool {
+  name: string;
+  driver: string;
+  description: string;
+  status: string;
+  usedByCount: number;
+  usage?: { used: number; total: number } | null;
+  volumes: StorageVolume[];
+}
+
 export interface RunningOperation {
   id: string;
   description: string;
