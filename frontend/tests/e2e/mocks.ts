@@ -227,8 +227,34 @@ export const mockPools = [
 ];
 
 export const mockNetworks = [
-  { name: "incusbr0", type: "bridge", description: "", managed: true },
-  { name: "enp0s31f6", type: "physical", description: "", managed: false },
+  {
+    name: "incusbr0",
+    type: "bridge",
+    description: "",
+    managed: true,
+    status: "Created",
+    ipv4: "10.227.129.1/24",
+    ipv6: "fd42:290a:ea64:85ba::1/64",
+    ipv4Nat: true,
+    ipv6Nat: true,
+    usedBy: [
+      { kind: "profile", name: "default" },
+      { kind: "instance", name: "web-01" },
+      { kind: "instance", name: "debian-vm" },
+    ],
+  },
+  {
+    name: "enp0s31f6",
+    type: "physical",
+    description: "",
+    managed: false,
+    status: "Unknown",
+    ipv4: null,
+    ipv6: null,
+    ipv4Nat: false,
+    ipv6Nat: false,
+    usedBy: [],
+  },
 ];
 
 export function json(route: Route, body: unknown) {

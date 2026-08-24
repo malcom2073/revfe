@@ -379,6 +379,34 @@ test("storage page shows pools and maps image volumes", async ({ page }) => {
   await expect(table.getByText("VM", { exact: true })).toBeVisible();
 });
 
+test("networks page lists networks with subnets and consumers", async ({
+  page,
+}) => {
+  await installApiMocks(page);
+
+  await page.goto("/");
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: /Networks/ })
+    .click();
+  await expect(page.getByRole("heading", { name: "Networks" })).toBeVisible();
+
+  const table = page.getByRole("grid");
+  const bridgeRow = table.getByRole("row", { name: /incusbr0/ });
+  await expect(bridgeRow.getByText("managed")).toBeVisible();
+  await expect(bridgeRow.getByText("Created")).toBeVisible();
+  await expect(bridgeRow.getByText("10.227.129.1/24")).toBeVisible();
+  await expect(bridgeRow.getByText(/NAT/).first()).toBeVisible();
+  // used-by labels: profile + instances
+  await expect(bridgeRow.getByText("default")).toBeVisible();
+  await expect(bridgeRow.getByText("web-01")).toBeVisible();
+  await expect(bridgeRow.getByText("debian-vm")).toBeVisible();
+
+  // Physical NIC: unmanaged, no subnets
+  const nicRow = table.getByRole("row", { name: /enp0s31f6/ });
+  await expect(nicRow.getByText("physical")).toBeVisible();
+});
+
 test("stopped instance detail offers Start button and blocks console", async ({
   page,
 }) => {

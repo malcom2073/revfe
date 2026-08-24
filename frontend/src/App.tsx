@@ -5,6 +5,7 @@ import Instances from "./pages/Instances";
 import InstanceDetail from "./pages/InstanceDetail";
 import Images from "./pages/Images";
 import Storage from "./pages/Storage";
+import Networks from "./pages/Networks";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
           <Route path="/instances/:name" element={<InstanceDetail />} />
           <Route path="/images" element={<Images />} />
           <Route path="/storage" element={<Storage />} />
+          <Route path="/networks" element={<Networks />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>

@@ -52,11 +52,22 @@ export interface StoragePool {
   status: string;
 }
 
+export interface NetworkUsedBy {
+  kind: "instance" | "profile" | "other";
+  name: string;
+}
+
 export interface NetworkInfo {
   name: string;
   type: string;
   description: string;
   managed: boolean;
+  status?: string;
+  ipv4?: string | null;
+  ipv6?: string | null;
+  ipv4Nat?: boolean;
+  ipv6Nat?: boolean;
+  usedBy?: NetworkUsedBy[];
 }
 
 export interface RemoteImage {

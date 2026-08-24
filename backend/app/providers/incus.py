@@ -420,16 +420,35 @@ class IncusProvider:
 
     def list_networks(self) -> list[dict[str, Any]]:
         metas = self._request("GET", "/1.0/networks", params={"recursion": 1})
-        return [
-            {
-                "name": m.get("name"),
-                "type": m.get("type"),
-                "description": m.get("description") or "",
-                "managed": m.get("managed", False),
-            }
-            for m in metas
-            if m.get("type") != "loopback"
-        ]
+        networks = []
+        for m in metas:
+            if m.get("type") == "loopback":
+                continue
+            name = m.get("name", "")
+            config = m.get("config") or {}
+            used_by = []
+            for ref in m.get("used_by") or []:
+                # "/1.0/instances/foo" -> ("instance", "foo")
+                parts = [p for p in ref.split("/") if p]
+                if len(parts) >= 3 and parts[0] == "1.0":
+                    used_by.append({"kind": parts[1].rstrip("s"), "name": parts[2]})
+                else:
+                    used_by.append({"kind": "other", "name": ref})
+            networks.append(
+                {
+                    "name": name,
+                    "type": m.get("type", ""),
+                    "description": m.get("description") or "",
+                    "managed": m.get("managed", False),
+                    "status": m.get("status", ""),
+                    "ipv4": config.get("ipv4.address"),
+                    "ipv6": config.get("ipv6.address"),
+                    "ipv4Nat": config.get("ipv4.nat") == "true",
+                    "ipv6Nat": config.get("ipv6.nat") == "true",
+                    "usedBy": used_by,
+                }
+            )
+        return networks
 
     def storage_overview(self) -> list[dict[str, Any]]:
         pools = self._request("GET", "/1.0/storage-pools", params={"recursion": 1})
