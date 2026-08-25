@@ -47,8 +47,8 @@ def get_instance(name: str):
                 "memoryUsed": state.get("memory_used"),
                 "memoryUsagePeak": state.get("memory_usage_peak"),
                 "cpuSeconds": state.get("cpu_seconds"),
-                "diskUsed": state.get("disk_used"),
-                "diskTotal": state.get("disk_total"),
+                "interfaces": state.get("interfaces") or [],
+                "disks": state.get("disks") or [],
             },
         }
     )

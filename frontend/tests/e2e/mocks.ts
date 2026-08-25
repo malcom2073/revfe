@@ -27,8 +27,17 @@ export const mockInstances = [
       memoryUsed: 268435456,
       memoryUsagePeak: 536870912,
       cpuSeconds: 120.5,
-      diskUsed: 1073741824,
-      diskTotal: 10737418240,
+      interfaces: [
+        {
+          name: "eth0",
+          addresses: [
+            { address: "10.227.129.137", family: "inet", netmask: "24", scope: "global" },
+            { address: "fd42:290a:ea64:85ba::1", family: "inet6", netmask: "64", scope: "global" },
+          ],
+        },
+        { name: "lo", addresses: [{ address: "127.0.0.1", family: "inet", netmask: "8", scope: "local" }] },
+      ],
+      disks: [{ name: "root", usage: 1_073_741_824, total: 10_737_418_240 }],
     },
   },
   {
@@ -56,8 +65,15 @@ export const mockInstanceDetail = (name: string) => {
             memoryUsed: 268435456,
             memoryUsagePeak: 536870912,
             cpuSeconds: 120.5,
-            diskUsed: 1073741824,
-            diskTotal: 10737418240,
+            interfaces: [
+              {
+                name: "eth0",
+                addresses: [
+                  { address: "10.227.129.137", family: "inet", netmask: "24", scope: "global" },
+                ],
+              },
+            ],
+            disks: [{ name: "root", usage: 1_073_741_824, total: 10_737_418_240 }],
           }
         : {},
   };

@@ -12,14 +12,32 @@ export interface ServerInfo {
   message?: string;
 }
 
+export interface InterfaceAddress {
+  address: string;
+  family: "inet" | "inet6" | string;
+  netmask?: string;
+  scope?: string;
+}
+
+export interface NetworkInterface {
+  name: string;
+  addresses: InterfaceAddress[];
+}
+
+export interface DiskUsage {
+  name: string;
+  usage?: number | null;
+  total?: number | null;
+}
+
 export interface InstanceState {
   pid?: number;
   processes?: number;
   memoryUsed?: number;
   memoryUsagePeak?: number;
   cpuSeconds?: number;
-  diskUsed?: number;
-  diskTotal?: number;
+  interfaces?: NetworkInterface[];
+  disks?: DiskUsage[];
 }
 
 export interface Instance {

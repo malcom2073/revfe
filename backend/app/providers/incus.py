@@ -160,7 +160,32 @@ class IncusProvider:
     def _normalize_state(state: dict[str, Any]) -> dict[str, Any]:
         cpu = state.get("cpu") or {}
         memory = state.get("memory") or {}
-        disk = next(iter((state.get("disk") or {}).values()), {})
+        disks = [
+            {
+                "name": name,
+                "usage": info.get("usage"),
+                "total": info.get("total"),
+            }
+            for name, info in (state.get("disk") or {}).items()
+        ]
+        interfaces = []
+        for if_name, net in (state.get("network") or {}).items():
+            addresses = [
+                {
+                    "address": a.get("address"),
+                    "family": a.get("family"),
+                    "netmask": a.get("netmask"),
+                    "scope": a.get("scope"),
+                }
+                for a in net.get("addresses") or []
+                if a.get("address")
+            ]
+            interfaces.append(
+                {
+                    "name": if_name,
+                    "addresses": addresses,
+                }
+            )
         processes = state.get("processes")
         if isinstance(processes, dict):
             processes = processes.get("total")
@@ -170,9 +195,8 @@ class IncusProvider:
             "memory_used": memory.get("usage"),
             "memory_usage_peak": memory.get("usage_peak"),
             "cpu_seconds": cpu.get("usage"),
-            "disk_used": disk.get("usage"),
-            "disk_total": disk.get("total"),
-            "networks": state.get("network") or {},
+            "disks": disks,
+            "interfaces": interfaces,
         }
 
     def instance_action(self, name: str, action: str) -> dict[str, Any]:

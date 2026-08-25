@@ -236,6 +236,31 @@ test("instance detail overview renders stats", async ({ page }) => {
   await expect(page.getByText("2m 0s")).toBeVisible(); // cpu time formatted
 });
 
+test("instance detail network tab shows addresses with copy buttons", async ({
+  page,
+}) => {
+  await page.goto("/instances/web-01");
+  const main = page.getByRole("main");
+  await main.getByRole("tab", { name: "Network" }).click();
+
+  await expect(main.getByText("eth0")).toBeVisible();
+  await expect(main.getByText("10.227.129.137").first()).toBeVisible();
+  await expect(main.getByText("inet").first()).toBeVisible();
+  await expect(main.getByText("global").first()).toBeVisible();
+  await expect(
+    main.getByRole("button", { name: "Copy 10.227.129.137" })
+  ).toBeVisible();
+});
+
+test("instance detail disks tab shows usage bars", async ({ page }) => {
+  await page.goto("/instances/web-01");
+  const main = page.getByRole("main");
+  await main.getByRole("tab", { name: "Disks" }).click();
+
+  await expect(main.getByText("Disk root")).toBeVisible();
+  await expect(main.getByText(/1 GiB of 10 GiB/)).toBeVisible();
+});
+
 test("images page lists pre-downloaded images with delete action", async ({
   page,
 }) => {
