@@ -209,7 +209,9 @@ function ChartTooltip({
         borderRadius: 6,
         padding: "8px 10px",
         fontSize: 12,
+        color: "#f0f0f0",
         boxShadow: "0 4px 12px rgba(0,0,0,0.4)",
+        zIndex: 100,
       }}
     >
       <div style={{ opacity: 0.7, marginBottom: 4 }}>{label}</div>
