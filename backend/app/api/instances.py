@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import time
+
 from flask import Blueprint, jsonify, request
 
 from ..providers import get_provider
@@ -75,6 +77,36 @@ def create_instance():
     spec = request.get_json(force=True) or {}
     metadata = provider.create_instance(spec)
     return jsonify({"ok": True, "metadata": metadata}), 201
+
+
+@instances_bp.get("/<name>/snapshots")
+def list_snapshots(name: str):
+    return jsonify(get_provider().list_snapshots(name))
+
+
+@instances_bp.post("/<name>/snapshots")
+def create_snapshot(name: str):
+    provider = get_provider()
+    body = request.get_json(force=True) or {}
+    snap_name = body.get("name") or f"snap{time.strftime('%Y%m%d%H%M%S')}"
+    metadata = provider.create_snapshot(
+        name, snap_name, stateful=bool(body.get("stateful", False))
+    )
+    return jsonify({"ok": True, "name": snap_name, "metadata": metadata}), 201
+
+
+@instances_bp.post("/<name>/snapshots/<snapshot>/restore")
+def restore_snapshot(name: str, snapshot: str):
+    provider = get_provider()
+    metadata = provider.restore_snapshot(name, snapshot)
+    return jsonify({"ok": True, "metadata": metadata})
+
+
+@instances_bp.post("/<name>/snapshots/<snapshot>/delete")
+def delete_snapshot(name: str, snapshot: str):
+    provider = get_provider()
+    metadata = provider.delete_snapshot(name, snapshot)
+    return jsonify({"ok": True, "metadata": metadata})
 
 
 def instance_exec(ws, name: str):

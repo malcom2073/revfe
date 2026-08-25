@@ -452,6 +452,49 @@ test("networks page lists networks with subnets and consumers", async ({
   await expect(nicRow.getByText("physical")).toBeVisible();
 });
 
+test("snapshots tab lists, creates, restores, deletes", async ({ page }) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  const main = page.getByRole("main");
+
+  await main.getByRole("tab", { name: "Snapshots" }).click();
+  const table = main.getByRole("grid");
+  await expect(table.getByText("snap-pre-upgrade")).toBeVisible();
+  await expect(table.getByText("clean-install")).toBeVisible();
+
+  // Create with an explicit name
+  await main.getByRole("button", { name: "Take snapshot" }).click();
+  const dlg = page.getByRole("dialog");
+  await expect(dlg.getByText(/Take a snapshot of web-01/)).toBeVisible();
+  await dlg.getByLabel("Snapshot name").fill("e2e-snap");
+  await dlg.getByRole("button", { name: "Create snapshot" }).click();
+  await expect
+    .poll(() => api.counts.snapshotCreate ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  expect(api.lastSnapshotPayload()).toMatchObject({ name: "e2e-snap" });
+  await expect(main.getByText(/Snapshot ".+" created./)).toBeVisible();
+
+  // Restore requires confirmation
+  await table
+    .getByRole("button", { name: "Restore snap-pre-upgrade" })
+    .click();
+  await dlg
+    .getByRole("button", { name: "Restore", exact: true })
+    .click();
+  await expect
+    .poll(() => api.counts.snapshotRestore ?? 0, { timeout: 5_000 })
+    .toBe(1);
+
+  // Delete requires confirmation
+  await table.getByRole("button", { name: "Delete clean-install" }).click();
+  await dlg
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await expect
+    .poll(() => api.counts.snapshotDelete ?? 0, { timeout: 5_000 })
+    .toBe(1);
+});
+
 test("stopped instance detail offers Start button and blocks console", async ({
   page,
 }) => {

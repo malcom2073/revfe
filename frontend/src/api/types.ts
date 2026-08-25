@@ -146,6 +146,13 @@ export interface MetricsHistory {
   points: MetricsPoint[];
 }
 
+export interface Snapshot {
+  name: string;
+  createdAt: string;
+  stateful: boolean;
+  expiresAt: string | null;
+}
+
 export interface RunningOperation {
   id: string;
   description: string;

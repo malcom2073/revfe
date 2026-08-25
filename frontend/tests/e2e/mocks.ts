@@ -193,6 +193,21 @@ export const mockMetricsHistory = {
   ],
 };
 
+export const mockSnapshots = [
+  {
+    name: "snap-pre-upgrade",
+    createdAt: "2026-08-23T09:00:00Z",
+    stateful: false,
+    expiresAt: null,
+  },
+  {
+    name: "clean-install",
+    createdAt: "2026-08-20T14:30:00Z",
+    stateful: true,
+    expiresAt: null,
+  },
+];
+
 export const mockRunningOps = [
   {
     id: "op-existing-1",
@@ -296,8 +311,11 @@ export function json(route: Route, body: unknown) {
 }
 
 /** Wire up all /api/v1 mocks. Returns handles for asserting on calls. */
+let snapshotPayload: unknown;
+
 export interface MockApi {
   counts: Record<string, number>;
+  lastSnapshotPayload: () => unknown;
   lastCreatePayload: () => unknown;
   lastPullPayload: () => unknown;
   /** Replace the default (static) SSE stream with a custom body. */
@@ -343,6 +361,22 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
   await page.route("**/api/v1/metrics/history", (route) =>
     json(route, mockMetricsHistory)
   );
+  await page.route("**/api/v1/instances/*/snapshots", async (route) => {
+    const req = route.request();
+    if (req.method() === "GET") return json(route, mockSnapshots);
+    if (req.method() === "POST") {
+      counts.snapshotCreate = (counts.snapshotCreate ?? 0) + 1;
+      snapshotPayload = req.postDataJSON();
+      return route.fulfill({ status: 201, json: { ok: true, name: "snap1" } });
+    }
+    return json(route, {});
+  });
+  await page.route(/\/snapshots\/[^/]+\/(restore|delete)$/, async (route) => {
+    const kind = route.request().url().endsWith("/restore") ? "restore" : "delete";
+    counts[`snapshot${kind.charAt(0).toUpperCase()}${kind.slice(1)}`] =
+      (counts[`snapshot${kind.charAt(0).toUpperCase()}${kind.slice(1)}`] ?? 0) + 1;
+    return json(route, { ok: true });
+  });
   await page.route("**/api/v1/events*", async (route) => {
     if (sseDelayMs > 0) {
       await new Promise((r) => setTimeout(r, sseDelayMs));
@@ -376,6 +410,7 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     counts,
     lastCreatePayload: () => createPayload,
     lastPullPayload: () => pullPayload,
+    lastSnapshotPayload: () => snapshotPayload,
     useSseScript: (body: string) => {
       sseBody = body;
     },

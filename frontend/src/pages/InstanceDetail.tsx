@@ -25,6 +25,7 @@ import { CheckIcon, CopyIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
 import type { Instance } from "../api/types";
 import Terminal from "../components/Terminal";
+import SnapshotsTab from "./SnapshotsTab";
 import { formatBytes, formatDuration } from "../util/format";
 
 function CopyButton({ text }: { text: string }) {
@@ -255,6 +256,12 @@ export default function InstanceDetail() {
             )}
           </Tab>
 
+          <Tab
+            eventKey="snapshots"
+            title={<TabTitleText>Snapshots</TabTitleText>}
+          >
+            <SnapshotsTab instanceName={name} />
+          </Tab>
           <Tab eventKey="disks" title={<TabTitleText>Disks</TabTitleText>}>
             {instance?.state?.disks?.length ? (
               <Gallery hasGutter className="pf-v6-u-mt-lg" maxWidths={{ default: "420px" }}>

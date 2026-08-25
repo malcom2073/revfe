@@ -532,6 +532,59 @@ class IncusProvider:
             )
         return overview
 
+    def list_snapshots(self, instance: str) -> list[dict[str, Any]]:
+        metas = self._request(
+            "GET", f"/1.0/instances/{instance}/snapshots", params={"recursion": 1}
+        )
+        snapshots = []
+        for m in metas or []:
+            full_name = m.get("name", "")
+            snap_name = full_name.split("/")[-1]
+            expires = m.get("expires_at") or ""
+            snapshots.append(
+                {
+                    "name": snap_name,
+                    "createdAt": m.get("created_at", ""),
+                    "stateful": bool(m.get("stateful", False)),
+                    "expiresAt": expires if not expires.startswith("0001-") else None,
+                }
+            )
+        return snapshots
+
+    def create_snapshot(
+        self, instance: str, name: str, stateful: bool = False
+    ) -> dict[str, Any]:
+        if not name or not all(c.isalnum() or c in "-_." for c in name):
+            raise ProviderError(
+                "Snapshot names may only contain alphanumerics, dashes, "
+                "underscores and dots",
+                400,
+            )
+        return self._request(
+            "POST",
+            f"/1.0/instances/{instance}/snapshots",
+            json_body={"name": name, "stateful": stateful},
+            wait=True,
+        )
+
+    def restore_snapshot(self, instance: str, snapshot: str) -> dict[str, Any]:
+        # NOTE: restore goes through the instance-update endpoint (PUT).
+        # POSTing {"restore": ...} hits the rename/migrate handler instead,
+        # which fails with a confusing name-validation error.
+        return self._request(
+            "PUT",
+            f"/1.0/instances/{instance}",
+            json_body={"restore": snapshot, "stateful": False},
+            wait=True,
+        )
+
+    def delete_snapshot(self, instance: str, snapshot: str) -> dict[str, Any]:
+        return self._request(
+            "DELETE",
+            f"/1.0/instances/{instance}/snapshots/{snapshot}",
+            wait=True,
+        )
+
     def exec_bridge(self, name: str, browser_ws, shell: str) -> None:
         payload = {
             "command": [shell],

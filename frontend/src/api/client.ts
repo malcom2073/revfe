@@ -49,6 +49,32 @@ export const api = {
   storage: () => request<import("./types").StoragePool[]>("/storage"),
   metricsHistory: () =>
     request<import("./types").MetricsHistory>("/metrics/history"),
+  listSnapshots: (name: string) =>
+    request<import("./types").Snapshot[]>(
+      `/instances/${encodeURIComponent(name)}/snapshots`
+    ),
+  createSnapshot: (name: string, snapName?: string, stateful = false) =>
+    request<{ ok: boolean; name: string }>(
+      `/instances/${encodeURIComponent(name)}/snapshots`,
+      {
+        method: "POST",
+        body: JSON.stringify({ name: snapName, stateful }),
+      }
+    ),
+  restoreSnapshot: (name: string, snapshot: string) =>
+    request<{ ok: boolean }>(
+      `/instances/${encodeURIComponent(
+        name
+      )}/snapshots/${encodeURIComponent(snapshot)}/restore`,
+      { method: "POST", body: "{}" }
+    ),
+  deleteSnapshot: (name: string, snapshot: string) =>
+    request<{ ok: boolean }>(
+      `/instances/${encodeURIComponent(
+        name
+      )}/snapshots/${encodeURIComponent(snapshot)}/delete`,
+      { method: "POST", body: "{}" }
+    ),
   refreshRemoteImages: () =>
     request<import("./types").RemoteCatalog>("/remote-images/refresh", {
       method: "POST",
