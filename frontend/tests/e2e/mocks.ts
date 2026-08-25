@@ -345,7 +345,21 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     return route.fulfill({ json: { ok: true, operation: "/1.0/operations/op-pull-a" }, status: 202 });
   });
   await page.route("**/api/v1/profiles", (route) =>
-    json(route, ["default"])
+    json(route, [
+      {
+        name: "default",
+        description: "Default Incus profile",
+        config: {},
+        devices: {
+          eth0: { type: "nic", name: "eth0", network: "incusbr0" },
+          root: { type: "disk", path: "/", pool: "default" },
+        },
+        usedBy: [
+          { kind: "instance", name: "web-01" },
+          { kind: "instance", name: "debian-vm" },
+        ],
+      },
+    ])
   );
   await page.route("**/api/v1/storage-pools", (route) =>
     json(route, mockPools)

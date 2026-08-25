@@ -70,6 +70,19 @@ export interface StoragePool {
   status: string;
 }
 
+export interface ProfileDevice {
+  type: string;
+  [key: string]: unknown;
+}
+
+export interface ProfileInfo {
+  name: string;
+  description: string;
+  config: Record<string, string>;
+  devices: Record<string, ProfileDevice>;
+  usedBy?: { kind: string; name: string }[];
+}
+
 export interface NetworkUsedBy {
   kind: "instance" | "profile" | "other";
   name: string;

@@ -23,6 +23,7 @@ import type {
   CreateInstanceSpec,
   ImageInfo,
   NetworkInfo,
+  ProfileInfo,
   StoragePool,
 } from "../api/types";
 import { REMOTE_SUGGESTIONS } from "../util/remotes";
@@ -54,7 +55,7 @@ export default function CreateInstanceWizard({
   const [networks, setNetworks] = useState<NetworkInfo[]>([]);
   const [network, setNetwork] = useState("");
   const [profiles, setProfiles] = useState<string[]>(["default"]);
-  const [availableProfiles, setAvailableProfiles] = useState<string[]>([]);
+  const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
   const [configRows, setConfigRows] = useState<ConfigRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -73,7 +74,9 @@ export default function CreateInstanceWizard({
       .listProfiles()
       .then((p) => {
         setAvailableProfiles(p);
-        setProfiles(["default"]);
+        setProfiles(
+          p.some((prof) => prof.name === "default") ? ["default"] : []
+        );
       })
       .catch(() => setAvailableProfiles([]));
   }, []);
@@ -353,11 +356,11 @@ export default function CreateInstanceWizard({
       <FormGroup label="Profiles" fieldId="wiz-profiles">
         {availableProfiles.map((p) => (
           <Checkbox
-            key={p}
-            id={`profile-${p}`}
-            label={p}
-            isChecked={profiles.includes(p)}
-            onChange={(_e, checked) => toggleProfile(p, checked)}
+            key={p.name}
+            id={`profile-${p.name}`}
+            label={p.name}
+            isChecked={profiles.includes(p.name)}
+            onChange={(_e, checked) => toggleProfile(p.name, checked)}
           />
         ))}
         {availableProfiles.length === 0 && <span>No profiles found.</span>}

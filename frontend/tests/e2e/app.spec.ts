@@ -495,6 +495,43 @@ test("snapshots tab lists, creates, restores, deletes", async ({ page }) => {
     .toBe(1);
 });
 
+test("profiles page shows config, devices, and consumers", async ({ page }) => {
+  await installApiMocks(page);
+
+  await page.goto("/");
+  await page
+    .getByRole("navigation")
+    .getByRole("link", { name: /Profiles/ })
+    .click();
+  await expect(page.getByRole("heading", { name: "Profiles" })).toBeVisible();
+
+  const main = page.getByRole("main");
+  await expect(main.getByText("Default Incus profile")).toBeVisible();
+  // Consumers
+  await expect(main.getByText(/Used by web-01, debian-vm/)).toBeVisible();
+  // Devices table with typed badges + details
+  const devicesTable = main.getByRole("grid", { name: "Devices of default" });
+  await expect(devicesTable.getByText("eth0").first()).toBeVisible();
+  await expect(devicesTable.getByText("network=incusbr0")).toBeVisible();
+  // Empty config messaging
+  await expect(
+    main.getByText(/No config keys — all limits unset/)
+  ).toBeVisible();
+});
+
+test("create wizard still lists profile checkboxes from rich API", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances");
+  await page.getByRole("button", { name: "Create instance" }).click();
+  const wizard = page.locator(".pf-v6-c-wizard");
+  await wizard.getByRole("button", { name: "Next" }).click();
+  await wizard.getByRole("button", { name: "Next" }).click();
+  await wizard.getByRole("button", { name: "Next" }).click();
+  await expect(wizard.getByRole("checkbox", { name: "default" })).toBeChecked();
+});
+
 test("stopped instance detail offers Start button and blocks console", async ({
   page,
 }) => {

@@ -85,7 +85,8 @@ export const api = {
       `/images/${encodeURIComponent(fingerprint)}`,
       { method: "DELETE" }
     ),
-  listProfiles: () => request<string[]>("/profiles"),
+  listProfiles: () =>
+    request<import("./types").ProfileInfo[]>("/profiles"),
   listStoragePools: () =>
     request<import("./types").StoragePool[]>("/storage-pools"),
   listNetworks: () => request<import("./types").NetworkInfo[]>("/networks"),

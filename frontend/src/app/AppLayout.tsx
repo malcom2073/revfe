@@ -17,6 +17,7 @@ import {
   ToolbarItem,
 } from "@patternfly/react-core";
 import {
+  BoxesIcon,
   ServerIcon,
   CubesIcon,
   DatabaseIcon,
@@ -33,6 +34,7 @@ const navItems = [
   { label: "Images", to: "/images", icon: <LayerGroupIcon />, disabled: false },
   { label: "Storage", to: "/storage", icon: <DatabaseIcon />, disabled: false },
   { label: "Networks", to: "/networks", icon: <NetworkWiredIcon />, disabled: false },
+  { label: "Profiles", to: "/profiles", icon: <BoxesIcon />, disabled: false },
   { label: "Settings", to: "/settings", icon: <CogIcon />, disabled: true },
 ];
 

@@ -6,6 +6,7 @@ import InstanceDetail from "./pages/InstanceDetail";
 import Images from "./pages/Images";
 import Storage from "./pages/Storage";
 import Networks from "./pages/Networks";
+import Profiles from "./pages/Profiles";
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
           <Route path="/images" element={<Images />} />
           <Route path="/storage" element={<Storage />} />
           <Route path="/networks" element={<Networks />} />
+          <Route path="/profiles" element={<Profiles />} />
         </Routes>
       </AppLayout>
     </BrowserRouter>

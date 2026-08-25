@@ -426,9 +426,27 @@ class IncusProvider:
                     )
         return ops
 
-    def list_profiles(self) -> list[str]:
-        metas = self._request("GET", "/1.0/profiles")
-        return [url.rstrip("/").split("/")[-1] for url in metas]
+    def list_profiles(self) -> list[dict[str, Any]]:
+        metas = self._request("GET", "/1.0/profiles", params={"recursion": 1})
+        profiles = []
+        for m in metas:
+            used_by = []
+            for ref in m.get("used_by") or []:
+                parts = [p for p in ref.split("/") if p]
+                if len(parts) >= 3 and parts[0] == "1.0":
+                    used_by.append({"kind": parts[1].rstrip("s"), "name": parts[2]})
+                else:
+                    used_by.append({"kind": "other", "name": ref})
+            profiles.append(
+                {
+                    "name": m.get("name", ""),
+                    "description": m.get("description") or "",
+                    "config": m.get("config") or {},
+                    "devices": m.get("devices") or {},
+                    "usedBy": used_by,
+                }
+            )
+        return profiles
 
     def list_storage_pools(self) -> list[dict[str, Any]]:
         metas = self._request("GET", "/1.0/storage-pools", params={"recursion": 1})
