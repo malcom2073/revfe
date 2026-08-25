@@ -46,6 +46,10 @@ def summarize(samples: list[tuple[str, dict[str, str], float]]) -> dict[str, Any
             continue
         entry = inst(name)
         if metric == "incus_cpu_seconds_total":
+            # Exclude idle/iowait — otherwise an idle VM's "busy doing
+            # nothing" time graphs as 100%+ CPU usage.
+            if labels.get("mode") in ("idle", "iowait"):
+                continue
             entry["cpuSeconds"] = entry.get("cpuSeconds", 0.0) + value
         elif metric == "incus_memory_MemTotal_bytes":
             entry["memTotal"] = value
