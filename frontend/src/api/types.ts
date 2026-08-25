@@ -105,6 +105,29 @@ export interface StoragePool {
   volumes: StorageVolume[];
 }
 
+export interface MetricsPoint {
+  timestamp: string;
+  instances: Record<
+    string,
+    {
+      cpuSeconds?: number;
+      memoryUsed?: number;
+      memTotal?: number;
+      netRx?: number;
+      netTx?: number;
+      diskRead?: number;
+      diskWrite?: number;
+      processes?: number;
+    }
+  >;
+}
+
+export interface MetricsHistory {
+  interval: number;
+  instances: string[];
+  points: MetricsPoint[];
+}
+
 export interface RunningOperation {
   id: string;
   description: string;

@@ -159,6 +159,24 @@ export const mockStorage = [
   },
 ];
 
+const mkPoint = (t: string, cpuA: number, cpuB: number, memA: number) => ({
+  timestamp: t,
+  instances: {
+    "web-01": { cpuSeconds: cpuA, memoryUsed: memA, netRx: 1e6, netTx: 5e5, processes: 4 },
+    "debian-vm": { cpuSeconds: cpuB, memoryUsed: 250_000_000, netRx: 2e6, netTx: 1e6, processes: 8 },
+  },
+});
+
+export const mockMetricsHistory = {
+  interval: 5,
+  instances: ["web-01", "debian-vm"],
+  points: [
+    mkPoint("2026-08-23T10:00:00Z", 100, 500, 120_000_000),
+    mkPoint("2026-08-23T10:00:05Z", 104, 503, 121_000_000),
+    mkPoint("2026-08-23T10:00:10Z", 108, 507, 122_000_000),
+  ],
+};
+
 export const mockRunningOps = [
   {
     id: "op-existing-1",
@@ -306,6 +324,9 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     json(route, { fetchedAt: null, images: [] })
   );
   await page.route("**/api/v1/storage", (route) => json(route, mockStorage));
+  await page.route("**/api/v1/metrics/history", (route) =>
+    json(route, mockMetricsHistory)
+  );
   await page.route("**/api/v1/events*", async (route) => {
     if (sseDelayMs > 0) {
       await new Promise((r) => setTimeout(r, sseDelayMs));

@@ -47,6 +47,8 @@ export const api = {
     request<import("./types").RunningOperation[]>("/operations"),
   remoteImages: () => request<import("./types").RemoteCatalog>("/remote-images"),
   storage: () => request<import("./types").StoragePool[]>("/storage"),
+  metricsHistory: () =>
+    request<import("./types").MetricsHistory>("/metrics/history"),
   refreshRemoteImages: () =>
     request<import("./types").RemoteCatalog>("/remote-images/refresh", {
       method: "POST",

@@ -24,13 +24,33 @@ test("shell shows server info and nav", async ({ page }) => {
   await expect(nav.getByRole("link", { name: /Instances/ })).toBeVisible();
 });
 
-test("dashboard renders server cards", async ({ page }) => {
+test("dashboard shows live metrics charts and stat cards", async ({ page }) => {
+  await installApiMocks(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+
   const main = page.getByRole("main");
-  await expect(main.getByText("6.8.0-test")).toBeVisible(); // kernel
-  await expect(main.getByText("32 GiB")).toBeVisible(); // memory total
-  await expect(main.getByText("x86_64")).toBeVisible(); // architectures
+  await expect(
+    page.getByRole("heading", { name: "Dashboard" })
+  ).toBeVisible();
+
+  // Stat cards derived from the latest sample
+  await expect(main.getByText("Instances").first()).toBeVisible();
+  await expect(main.getByText("12", { exact: true })).toBeVisible(); // total processes: 4 + 8
+  await expect(main.getByText(/354.8 MiB/)).toBeVisible(); // memory used
+
+  // Charts render with legends per instance
+  await expect(main.getByText("CPU usage by instance (%)")).toBeVisible();
+  await expect(main.getByText("Memory usage by instance (MiB)")).toBeVisible();
+  await expect(main.getByText("Network throughput (KiB/s)")).toBeVisible();
+  await expect(main.getByText("web-01").first()).toBeVisible();
+
+  // Regression: line/area paths must have valid coordinates (a double-"Z"
+  // timestamp bug once rendered every x as NaN with axes still visible).
+  await page.waitForTimeout(500);
+  const nanPaths = await main.locator("path[d*='NaN']").count();
+  expect(nanPaths).toBe(0);
+  const areaPaths = await main.locator("path[d^='M']").count();
+  expect(areaPaths).toBeGreaterThan(0);
 });
 
 test("instances table lists both instances with live state", async ({
