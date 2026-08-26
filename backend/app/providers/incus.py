@@ -63,14 +63,18 @@ class IncusProvider:
                 f"Incus returned non-JSON response ({resp.status_code})", 502
             ) from exc
 
-        if resp.status_code == 403:
+        if resp.status_code == 403 and "not authorized" in (
+            body.get("error") or ""
+        ).lower():
+            # Distinguish auth failures from other 403s (e.g. "profile is
+            # currently in use"), which carry their own useful message.
             raise ProviderError(
                 "Incus rejected our certificate. Run 'make setup-cert' and trust "
                 "the generated client certificate on the Incus host.",
                 502,
             )
         if body.get("type") == "error":
-            raise ProviderError(body.get("error", "Unknown Incus error"), 502)
+            raise ProviderError(body.get("error", "Unknown Incus error"), resp.status_code if resp.status_code >= 400 else 502)
         return body
 
     def _request(
@@ -602,6 +606,62 @@ class IncusProvider:
             f"/1.0/instances/{instance}/snapshots/{snapshot}",
             wait=True,
         )
+
+    def create_profile(self, spec: dict[str, Any]) -> dict[str, Any]:
+        name = (spec.get("name") or "").strip()
+        if not name:
+            raise ProviderError("'name' is required", 400)
+        return self._request(
+            "POST",
+            "/1.0/profiles",
+            json_body={
+                "name": name,
+                "description": spec.get("description") or "",
+                "config": spec.get("config") or {},
+                "devices": self._sanitize_devices(spec.get("devices")),
+            },
+        )
+
+    def update_profile(self, name: str, spec: dict[str, Any]) -> dict[str, Any]:
+        return self._request(
+            "PUT",
+            f"/1.0/profiles/{name}",
+            json_body={
+                "description": spec.get("description") or "",
+                "config": spec.get("config") or {},
+                "devices": self._sanitize_devices(spec.get("devices")),
+            },
+        )
+
+    def delete_profile(self, name: str) -> dict[str, Any]:
+        return self._request("DELETE", f"/1.0/profiles/{name}")
+
+    @staticmethod
+    def _sanitize_devices(devices: Any) -> dict[str, Any]:
+        """Normalize frontend device rows into Incus devices map."""
+        result: dict[str, Any] = {}
+        if isinstance(devices, dict):
+            for dev_name, dev in devices.items():
+                if not dev_name or not isinstance(dev, dict):
+                    continue
+                clean = {k: str(v) for k, v in dev.items() if v is not None}
+                clean.setdefault("type", "custom")
+                result[dev_name] = clean
+        elif isinstance(devices, list):
+            for dev in devices:
+                if not isinstance(dev, dict):
+                    continue
+                dev_name = (dev.get("name") or "").strip()
+                if not dev_name:
+                    continue
+                clean = {
+                    k: str(v)
+                    for k, v in dev.items()
+                    if k != "name" and v is not None and v != ""
+                }
+                clean.setdefault("type", "custom")
+                result[dev_name] = clean
+        return result
 
     def exec_bridge(self, name: str, browser_ws, shell: str) -> None:
         payload = {

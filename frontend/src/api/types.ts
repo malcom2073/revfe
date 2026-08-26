@@ -83,6 +83,14 @@ export interface ProfileInfo {
   usedBy?: { kind: string; name: string }[];
 }
 
+export interface CreateProfileSpec {
+  name: string;
+  description: string;
+  config: Record<string, string>;
+  /** Each entry becomes an Incus device keyed by `name`. */
+  devices: Array<{ name: string; type: string; [key: string]: unknown }>;
+}
+
 export interface NetworkUsedBy {
   kind: "instance" | "profile" | "other";
   name: string;

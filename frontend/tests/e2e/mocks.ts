@@ -312,10 +312,12 @@ export function json(route: Route, body: unknown) {
 
 /** Wire up all /api/v1 mocks. Returns handles for asserting on calls. */
 let snapshotPayload: unknown;
+let profilePayload: unknown;
 
 export interface MockApi {
   counts: Record<string, number>;
   lastSnapshotPayload: () => unknown;
+  lastProfilePayload: () => unknown;
   lastCreatePayload: () => unknown;
   lastPullPayload: () => unknown;
   /** Replace the default (static) SSE stream with a custom body. */
@@ -344,23 +346,45 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     pullPayload = route.request().postDataJSON();
     return route.fulfill({ json: { ok: true, operation: "/1.0/operations/op-pull-a" }, status: 202 });
   });
-  await page.route("**/api/v1/profiles", (route) =>
-    json(route, [
-      {
-        name: "default",
-        description: "Default Incus profile",
-        config: {},
-        devices: {
-          eth0: { type: "nic", name: "eth0", network: "incusbr0" },
-          root: { type: "disk", path: "/", pool: "default" },
+  await page.route("**/api/v1/profiles", async (route) => {
+    const req = route.request();
+    if (req.method() === "GET") {
+      return json(route, [
+        {
+          name: "default",
+          description: "Default Incus profile",
+          config: {},
+          devices: {
+            eth0: { type: "nic", name: "eth0", network: "incusbr0" },
+            root: { type: "disk", path: "/", pool: "default" },
+          },
+          usedBy: [
+            { kind: "instance", name: "web-01" },
+            { kind: "instance", name: "debian-vm" },
+          ],
         },
-        usedBy: [
-          { kind: "instance", name: "web-01" },
-          { kind: "instance", name: "debian-vm" },
-        ],
-      },
-    ])
-  );
+      ]);
+    }
+    if (req.method() === "POST") {
+      counts.profileCreate = (counts.profileCreate ?? 0) + 1;
+      profilePayload = req.postDataJSON();
+      return route.fulfill({ status: 201, json: { ok: true, name: profilePayload.name } });
+    }
+    return json(route, {});
+  });
+  await page.route("**/api/v1/profiles/default", async (route) => {
+    const method = route.request().method();
+    if (method === "PUT") {
+      counts.profileUpdate = (counts.profileUpdate ?? 0) + 1;
+      profilePayload = route.request().postDataJSON();
+      return json(route, { ok: true });
+    }
+    if (method === "DELETE") {
+      counts.profileDelete = (counts.profileDelete ?? 0) + 1;
+      return json(route, { ok: true });
+    }
+    return json(route, {});
+  });
   await page.route("**/api/v1/storage-pools", (route) =>
     json(route, mockPools)
   );
@@ -425,6 +449,7 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     lastCreatePayload: () => createPayload,
     lastPullPayload: () => pullPayload,
     lastSnapshotPayload: () => snapshotPayload,
+    lastProfilePayload: () => profilePayload,
     useSseScript: (body: string) => {
       sseBody = body;
     },

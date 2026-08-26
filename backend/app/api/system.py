@@ -103,6 +103,30 @@ def list_profiles():
     return jsonify(get_provider().list_profiles())
 
 
+@system_bp.post("/profiles")
+def create_profile():
+    provider = get_provider()
+    spec = request.get_json(force=True) or {}
+    result = provider.create_profile(spec)
+    name = (spec.get("name") or "").strip()
+    return jsonify({"ok": True, "name": name, "metadata": result}), 201
+
+
+@system_bp.put("/profiles/<name>")
+def update_profile(name: str):
+    provider = get_provider()
+    spec = request.get_json(force=True) or {}
+    result = provider.update_profile(name, spec)
+    return jsonify({"ok": True, "metadata": result})
+
+
+@system_bp.delete("/profiles/<name>")
+def delete_profile(name: str):
+    provider = get_provider()
+    result = provider.delete_profile(name)
+    return jsonify({"ok": True, "metadata": result})
+
+
 @system_bp.get("/storage-pools")
 def list_storage_pools():
     return jsonify(get_provider().list_storage_pools())

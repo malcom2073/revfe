@@ -519,6 +519,68 @@ test("profiles page shows config, devices, and consumers", async ({ page }) => {
   ).toBeVisible();
 });
 
+test("profiles can be created, edited, and deleted", async ({ page }) => {
+  const api = await installApiMocks(page);
+  await page.goto("/profiles");
+  const main = page.getByRole("main");
+
+  // Create
+  await main.getByRole("button", { name: "Create profile" }).click();
+  const modal = page.getByRole("dialog");
+  await expect(modal.getByRole("heading")).toContainText("Create profile");
+  await modal.locator("#prof-name").fill("gpu-box");
+  await modal.getByLabel("Description").fill("ML instances with GPU");
+  // device: switch type to gpu, name it and set a known field
+  await modal.getByLabel("Device name 1").fill("gpu0");
+  await modal.getByLabel("Device type 1").selectOption("gpu");
+  await modal.getByLabel("pci value").fill("0000:01:00.0");
+  await modal
+    .getByRole("button", { name: "Create profile" })
+    .click();
+  await expect
+    .poll(() => api.counts.profileCreate ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  const created = api.lastProfilePayload() as Record<string, unknown>;
+  expect(created.name).toBe("gpu-box");
+  expect(created.description).toBe("ML instances with GPU");
+  const createdDevices = created.devices as Array<Record<string, unknown>>;
+  expect(createdDevices[0].name).toBe("gpu0");
+  expect(createdDevices[0].type).toBe("gpu");
+  expect(createdDevices[0].pci).toBe("0000:01:00.0");
+  await expect(main.getByText('Profile "gpu-box" saved.')).toBeVisible();
+
+  // Edit existing default profile: add a config key
+  await main.getByRole("button", { name: "Edit default" }).click();
+  const editModal = page.getByRole("dialog");
+  await editModal.getByRole("button", { name: "Add config key" }).click();
+  await editModal.getByLabel("Config key 1", { exact: true }).fill("limits.cpu");
+  await editModal.getByLabel("Config value 1").fill("4");
+  await editModal.getByRole("button", { name: "Save changes" }).click();
+  await expect
+    .poll(() => api.counts.profileUpdate ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  const updated = api.lastProfilePayload() as Record<string, unknown>;
+  expect(updated.config).toMatchObject({ "limits.cpu": "4" });
+  // devices preserved through the edit round-trip
+  const updatedDevices = updated.devices as Array<{ name: string }>;
+  expect(updatedDevices.map((d) => d.name)).toEqual(["eth0", "root"]);
+});
+
+test("profile delete requires confirmation", async ({ page }) => {
+  const api = await installApiMocks(page);
+  await page.goto("/profiles");
+  const main = page.getByRole("main");
+
+  await main.getByRole("button", { name: "Delete default" }).click();
+  const dlg = page.getByRole("dialog");
+  await expect(dlg.getByText(/permanently removed/)).toBeVisible();
+  await dlg.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect
+    .poll(() => api.counts.profileDelete ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  await expect(main.getByText('Profile "default" deleted.')).toBeVisible();
+});
+
 test("create wizard still lists profile checkboxes from rich API", async ({
   page,
 }) => {

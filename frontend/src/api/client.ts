@@ -87,6 +87,20 @@ export const api = {
     ),
   listProfiles: () =>
     request<import("./types").ProfileInfo[]>("/profiles"),
+  createProfile: (spec: import("./types").CreateProfileSpec) =>
+    request<{ ok: boolean; name: string }>("/profiles", {
+      method: "POST",
+      body: JSON.stringify(spec),
+    }),
+  updateProfile: (name: string, spec: import("./types").CreateProfileSpec) =>
+    request<{ ok: boolean }>(`/profiles/${encodeURIComponent(name)}`, {
+      method: "PUT",
+      body: JSON.stringify(spec),
+    }),
+  deleteProfile: (name: string) =>
+    request<{ ok: boolean }>(`/profiles/${encodeURIComponent(name)}`, {
+      method: "DELETE",
+    }),
   listStoragePools: () =>
     request<import("./types").StoragePool[]>("/storage-pools"),
   listNetworks: () => request<import("./types").NetworkInfo[]>("/networks"),
