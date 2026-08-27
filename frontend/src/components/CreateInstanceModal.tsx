@@ -10,12 +10,17 @@ import {
   FormSelect,
   HelperText,
   HelperTextItem,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   Radio,
   FormSelectOption,
+  Tab,
+  Tabs,
+  TabTitleText,
   TextInput,
   Title,
-  Wizard,
-  WizardStep,
 } from "@patternfly/react-core";
 import { TimesIcon, PlusCircleIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
@@ -40,6 +45,7 @@ export default function CreateInstanceWizard({
   onCreated: () => void;
   onClose: () => void;
 }) {
+  const [activeTab, setActiveTab] = useState<string | number>("general");
   const [name, setName] = useState("");
   const [type, setType] = useState<"container" | "virtual-machine">(
     "container"
@@ -96,8 +102,6 @@ export default function CreateInstanceWizard({
     [images, type]
   );
 
-  // If the selected local image becomes incompatible after a type change,
-  // fall back to the default remote suggestion.
   useEffect(() => {
     if (images.length === 0) return;
     const selected = images.find((img) => imageRefOf(img) === image);
@@ -162,7 +166,7 @@ export default function CreateInstanceWizard({
     }
   };
 
-  const detailsStep = (
+  const generalTab = (
     <Form isHorizontal>
       <FormGroup label="Name" isRequired fieldId="wiz-name">
         <TextInput
@@ -196,11 +200,6 @@ export default function CreateInstanceWizard({
           </HelperTextItem>
         </HelperText>
       </FormGroup>
-    </Form>
-  );
-
-  const sourceStep = (
-    <Form>
       {images.length > 0 && (
         <FormFieldGroup header={<FormFieldGroupHeader titleText={{ text: `Local images (${type === "container" ? "container" : "VM"}-compatible)`, id: "fg-local-images" }} />} >
           {compatibleImages.map((img) => {
@@ -262,10 +261,22 @@ export default function CreateInstanceWizard({
           </HelperText>
         </FormGroup>
       </FormFieldGroup>
+      <FormGroup label="Profiles" fieldId="wiz-profiles">
+        {availableProfiles.map((p) => (
+          <Checkbox
+            key={p.name}
+            id={`profile-${p.name}`}
+            label={p.name}
+            isChecked={profiles.includes(p.name)}
+            onChange={(_e, checked) => toggleProfile(p.name, checked)}
+          />
+        ))}
+        {availableProfiles.length === 0 && <span>No profiles found.</span>}
+      </FormGroup>
     </Form>
   );
 
-  const resourcesStep = (
+  const resourcesTab = (
     <Form isHorizontal>
       <FormGroup label="CPU limit" fieldId="wiz-cpu">
         <TextInput
@@ -329,7 +340,7 @@ export default function CreateInstanceWizard({
     </Form>
   );
 
-  const advancedStep = (
+  const configTab = (
     <Form isHorizontal>
       <FormGroup label="NIC network" fieldId="wiz-net">
         <FormSelect
@@ -352,18 +363,6 @@ export default function CreateInstanceWizard({
             profile default.
           </HelperTextItem>
         </HelperText>
-      </FormGroup>
-      <FormGroup label="Profiles" fieldId="wiz-profiles">
-        {availableProfiles.map((p) => (
-          <Checkbox
-            key={p.name}
-            id={`profile-${p.name}`}
-            label={p.name}
-            isChecked={profiles.includes(p.name)}
-            onChange={(_e, checked) => toggleProfile(p.name, checked)}
-          />
-        ))}
-        {availableProfiles.length === 0 && <span>No profiles found.</span>}
       </FormGroup>
       <FormFieldGroup header={<FormFieldGroupHeader titleText={{ text: "Extra configuration keys", id: "fg-config-keys" }} />} >
         {configRows.map((row, idx) => (
@@ -419,7 +418,7 @@ export default function CreateInstanceWizard({
     </Form>
   );
 
-  const reviewStep = spec ? (
+  const reviewTab = spec ? (
     <Form isHorizontal>
       <Title headingLevel="h3">Summary</Title>
       <table className="pf-v6-c-table pf-m-compact" style={{ marginTop: "12px" }}>
@@ -447,47 +446,64 @@ export default function CreateInstanceWizard({
   ) : null;
 
   return (
-    <Wizard title="Create instance" onClose={onClose} onSave={submit}>
-      <WizardStep
-        id="details-step"
-        name="Details"
-        status={!nameValid || !imageValid ? "error" : "default"}
+    <>
+      <style>{`.pf-v6-c-modal-box--create-instance .pf-v6-c-modal-box__body { height: 460px; overflow-y: auto; }`}</style>
+      <Modal
+        isOpen
+        onClose={onClose}
+        variant="large"
+        className="pf-v6-c-modal-box--create-instance"
       >
-        {detailsStep}
-      </WizardStep>
-      <WizardStep id="source-step" name="Source">
-        {sourceStep}
-      </WizardStep>
-      <WizardStep id="resources-step" name="Resources">
-        {resourcesStep}
-      </WizardStep>
-      <WizardStep id="advanced-step" name="Advanced">
-        {advancedStep}
-      </WizardStep>
-      <WizardStep
-        id="review-step"
-        name="Review"
-        footer={{ nextButtonText: "Create instance" }}
-      >
-        <>
-          {error && (
-            <Alert variant="danger" title="Creation failed" isInline>
-              {error}
-            </Alert>
-          )}
-          {submitting && (
-            <Alert variant="info" isInline title="Creating instance…" />
-          )}
-          {!spec && (
-            <Alert
-              variant="warning"
-              isInline
-              title="Provide a valid name and image to continue"
-            />
-          )}
-          {reviewStep}
-        </>
-      </WizardStep>
-    </Wizard>
+        <ModalHeader title="Create instance" />
+        <ModalBody>
+          <Tabs
+            activeKey={activeTab}
+            onSelect={(_e, key) => setActiveTab(key)}
+            aria-label="Instance creation tabs"
+          >
+          <Tab eventKey="general" title={<TabTitleText>General</TabTitleText>}>
+            {generalTab}
+          </Tab>
+          <Tab eventKey="resources" title={<TabTitleText>Resources</TabTitleText>}>
+            {resourcesTab}
+          </Tab>
+          <Tab eventKey="config" title={<TabTitleText>Configuration</TabTitleText>}>
+            {configTab}
+          </Tab>
+          <Tab eventKey="review" title={<TabTitleText>Review</TabTitleText>}>
+            {error && (
+              <Alert variant="danger" title="Creation failed" isInline>
+                {error}
+              </Alert>
+            )}
+            {submitting && (
+              <Alert variant="info" isInline title="Creating instance…" />
+            )}
+            {!spec && (
+              <Alert
+                variant="warning"
+                isInline
+                title="Provide a valid name and image to continue"
+              />
+            )}
+            {reviewTab}
+          </Tab>
+        </Tabs>
+      </ModalBody>
+      <ModalFooter>
+        <Button
+          variant="primary"
+          onClick={submit}
+          isDisabled={!spec || submitting}
+          isLoading={submitting}
+        >
+          Create instance
+        </Button>
+        <Button variant="link" onClick={onClose}>
+          Cancel
+        </Button>
+      </ModalFooter>
+      </Modal>
+    </>
   );
 }

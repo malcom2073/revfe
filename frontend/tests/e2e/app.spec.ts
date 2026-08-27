@@ -103,27 +103,24 @@ test("instance actions call the API and refresh", async ({ page }) => {
     .toBe(1);
 });
 
-test("create wizard walks through all steps and submits", async ({ page }) => {
+test("create wizard walks through all tabs and submits", async ({ page }) => {
   const api = await installApiMocks(page);
   await page.goto("/instances");
   await page.getByRole("button", { name: "Create instance" }).click();
 
-  const dialog = page.locator(".pf-v6-c-wizard");
+  const dialog = page.getByRole("dialog");
 
-  // Step 1: Details
+  // General tab: name + type + image
   await dialog.getByLabel("Name", { exact: false }).fill("e2e-box");
   await dialog
     .getByLabel("Instance type")
     .selectOption({ label: "Container (system)" });
-  await dialog.getByRole("button", { name: "Next" }).click();
-
-  // Step 2: Source — pick remote ref suggestion via input
   const imageInput = dialog.getByLabel("Image reference");
   await expect(imageInput).toBeVisible();
   await imageInput.fill("images:debian/13");
-  await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Step 3: Resources
+  // Resources tab
+  await dialog.getByRole("tab", { name: "Resources" }).click();
   await dialog
     .getByRole("spinbutton", { name: "CPU limit" })
     .fill("2");
@@ -136,16 +133,16 @@ test("create wizard walks through all steps and submits", async ({ page }) => {
   await expect(
     dialog.getByRole("combobox", { name: "Storage pool" })
   ).toContainText("default");
-  await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Step 4: Advanced — network select + a config key
+  // Configuration tab: network + config key
+  await dialog.getByRole("tab", { name: "Configuration" }).click();
   await dialog.getByRole("combobox", { name: "NIC network" }).selectOption("incusbr0");
   await dialog.getByRole("button", { name: "Add config key" }).click();
   await dialog.getByPlaceholder("e.g. boot.autostart").fill("boot.autostart");
   await dialog.getByPlaceholder("true").fill("true");
-  await dialog.getByRole("button", { name: "Next" }).click();
 
-  // Step 5: Review + create
+  // Review tab: verify summary + create
+  await dialog.getByRole("tab", { name: "Review" }).click();
   await expect(dialog.getByText("e2e-box")).toBeVisible();
   await expect(dialog.getByText("images:debian/13")).toBeVisible();
   await dialog.getByRole("button", { name: "Create instance" }).click();
@@ -157,7 +154,6 @@ test("create wizard walks through all steps and submits", async ({ page }) => {
   expect(payload.image).toBe("images:debian/13");
   expect(payload.network).toBe("incusbr0");
   expect(payload.config).toMatchObject({ "boot.autostart": "true" });
-  // Wizard closes after creation
   await expect(dialog).not.toBeVisible();
 });
 
@@ -168,22 +164,19 @@ test("create wizard filters local images by instance type", async ({
   await page.goto("/instances");
   await page.getByRole("button", { name: "Create instance" }).click();
 
-  const dialog = page.locator(".pf-v6-c-wizard");
+  const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Name", { exact: false }).fill("fp-box");
 
   // Container is the default type: the VM-only image must be hidden.
-  await dialog.getByRole("button", { name: "Next" }).click();
   await expect(dialog.getByRole("radio", { name: /Debian 13 amd64/ })).toBeVisible();
   await expect(
     dialog.getByRole("radio", { name: new RegExp(FULL_FP.slice(0, 12)) })
   ).toHaveCount(0);
 
-  // Go back, switch to VM: container image hides, VM image appears.
-  await dialog.getByRole("button", { name: "Back" }).click();
+  // Switch to VM: container image hides, VM image appears.
   await dialog
     .getByLabel("Instance type")
     .selectOption({ label: "Virtual machine" });
-  await dialog.getByRole("button", { name: "Next" }).click();
   await expect(
     dialog.getByRole("radio", { name: new RegExp(FULL_FP.slice(0, 12)) })
   ).toBeVisible();
@@ -199,14 +192,13 @@ test("create wizard sends full fingerprint for alias-less local images", async (
   await page.goto("/instances");
   await page.getByRole("button", { name: "Create instance" }).click();
 
-  const dialog = page.locator(".pf-v6-c-wizard");
+  const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Name", { exact: false }).fill("fp-box");
 
   // The alias-less image in mocks is VM-only; switch type so it shows.
   await dialog
     .getByLabel("Instance type")
     .selectOption({ label: "Virtual machine" });
-  await dialog.getByRole("button", { name: "Next" }).click();
 
   // Regression: alias-less cached images must send the FULL fingerprint,
   // not a truncated stub that Incus cannot resolve.
@@ -214,9 +206,9 @@ test("create wizard sends full fingerprint for alias-less local images", async (
     .getByRole("radio", { name: new RegExp(FULL_FP.slice(0, 12)) })
     .check();
   await expect(dialog.getByLabel("Image reference")).toHaveValue(FULL_FP);
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("button", { name: "Next" }).click();
-  await dialog.getByRole("button", { name: "Next" }).click();
+
+  // Click through to Review and create
+  await dialog.getByRole("tab", { name: "Review" }).click();
   await expect(dialog.getByText(FULL_FP)).toBeVisible();
   await dialog.getByRole("button", { name: "Create instance" }).click();
 
@@ -587,11 +579,9 @@ test("create wizard still lists profile checkboxes from rich API", async ({
   const api = await installApiMocks(page);
   await page.goto("/instances");
   await page.getByRole("button", { name: "Create instance" }).click();
-  const wizard = page.locator(".pf-v6-c-wizard");
-  await wizard.getByRole("button", { name: "Next" }).click();
-  await wizard.getByRole("button", { name: "Next" }).click();
-  await wizard.getByRole("button", { name: "Next" }).click();
-  await expect(wizard.getByRole("checkbox", { name: "default" })).toBeChecked();
+  const dialog = page.getByRole("dialog");
+  // Profiles are on the General tab — visible immediately
+  await expect(dialog.getByRole("checkbox", { name: "default" })).toBeChecked();
 });
 
 test("stopped instance detail offers Start button and blocks console", async ({
