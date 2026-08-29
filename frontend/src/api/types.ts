@@ -193,6 +193,12 @@ export interface CreateInstanceSpec {
   config?: Record<string, string>;
 }
 
+export interface InstanceEditSpec {
+  profiles: string[];
+  config: Record<string, string>;
+  devices: Record<string, Record<string, string>>;
+}
+
 export interface IncusEvent {
   type: string;
   timestamp: string;

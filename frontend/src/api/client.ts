@@ -32,6 +32,19 @@ export const api = {
       method: "POST",
       body: "{}",
     }),
+  updateInstance: (name: string, spec: import("./types").InstanceEditSpec) =>
+    request<{ ok: boolean }>(`/instances/${encodeURIComponent(name)}`, {
+      method: "PATCH",
+      body: JSON.stringify(spec),
+    }),
+  renameInstance: (name: string, newName: string) =>
+    request<{ ok: boolean }>(
+      `/instances/${encodeURIComponent(name)}/rename`,
+      {
+        method: "POST",
+        body: JSON.stringify({ name: newName }),
+      }
+    ),
   createInstance: (spec: import("./types").CreateInstanceSpec) =>
     request<{ ok: boolean }>("/instances", {
       method: "POST",

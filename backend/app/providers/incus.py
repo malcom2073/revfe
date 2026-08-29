@@ -216,6 +216,41 @@ class IncusProvider:
     def delete_instance(self, name: str) -> dict[str, Any]:
         return self._request("DELETE", f"/1.0/instances/{name}", wait=True)
 
+    def update_instance(self, name: str, spec: dict[str, Any]) -> dict[str, Any]:
+        """Apply config/devices/profiles changes to a running or stopped instance.
+
+        Uses PATCH so immutable fields (name, type) and Incus-managed
+        volatile.* keys are left untouched.
+        """
+        profiles = spec.get("profiles")
+        if profiles is not None and not isinstance(profiles, list):
+            raise ProviderError("'profiles' must be a list", 400)
+        body: dict[str, Any] = {"profiles": profiles or ["default"]}
+        if spec.get("config") is not None:
+            if not isinstance(spec.get("config"), dict):
+                raise ProviderError("'config' must be an object", 400)
+            body["config"] = spec.get("config")
+        if spec.get("devices") is not None:
+            body["devices"] = self._sanitize_devices(spec.get("devices"))
+        return self._request(
+            "PATCH", f"/1.0/instances/{name}", json_body=body, wait=True
+        )
+
+    def rename_instance(self, name: str, new_name: str) -> dict[str, Any]:
+        if not new_name or not all(
+            c.isalnum() or c in "-_" for c in new_name
+        ):
+            raise ProviderError(
+                "Instance names may only contain alphanumerics, dashes and "
+                "underscores", 400,
+            )
+        return self._request(
+            "POST",
+            f"/1.0/instances/{name}",
+            json_body={"name": new_name},
+            wait=True,
+        )
+
     def create_instance(self, spec: dict[str, Any]) -> dict[str, Any]:
         name = spec.get("name")
         if not name:

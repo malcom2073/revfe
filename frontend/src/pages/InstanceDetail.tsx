@@ -25,10 +25,12 @@ import {
   Tabs,
   Title,
 } from "@patternfly/react-core";
-import { CheckIcon, CopyIcon, TrashIcon } from "@patternfly/react-icons";
+import { CheckIcon, CopyIcon, EditIcon, TrashIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
 import type { Instance } from "../api/types";
 import Terminal from "../components/Terminal";
+import InstanceEditModal from "../components/InstanceEditModal";
+import RenameInstanceModal from "../components/RenameInstanceModal";
 import SnapshotsTab from "./SnapshotsTab";
 import { formatBytes, formatDuration } from "../util/format";
 
@@ -61,6 +63,9 @@ export default function InstanceDetail() {
   const [activeTab, setActiveTab] = useState<string | number>("overview");
   const [shell, setShell] = useState("bash");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const refresh = useCallback(() => {
     api
@@ -129,6 +134,21 @@ export default function InstanceDetail() {
             </Button>
           )}
           <Button
+            variant="secondary"
+            icon={<EditIcon />}
+            isDisabled={!instance}
+            onClick={() => setEditing(true)}
+          >
+            Edit
+          </Button>
+          <Button
+            variant="secondary"
+            isDisabled={!instance}
+            onClick={() => setRenaming(true)}
+          >
+            Rename
+          </Button>
+          <Button
             variant="danger"
             icon={<TrashIcon />}
             isDisabled={!instance}
@@ -137,6 +157,9 @@ export default function InstanceDetail() {
             Delete
           </Button>
         </div>
+        {notice && (
+          <Alert variant="success" isInline title={notice} className="pf-v6-u-mt-md" />
+        )}
         <Tabs
           activeKey={activeTab}
           onSelect={(_e, key) => setActiveTab(key)}
@@ -373,6 +396,28 @@ export default function InstanceDetail() {
           </Button>
         </ModalFooter>
       </Modal>
+
+      {editing && instance && (
+        <InstanceEditModal
+          instance={instance}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            setNotice("Instance configuration saved.");
+            refresh();
+          }}
+        />
+      )}
+      {renaming && (
+        <RenameInstanceModal
+          name={name}
+          onClose={() => setRenaming(false)}
+          onSaved={(newName) => {
+            setRenaming(false);
+            navigate(`/instances/${encodeURIComponent(newName)}`);
+          }}
+        />
+      )}
     </>
   );
 }

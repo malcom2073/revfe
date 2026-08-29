@@ -3,6 +3,7 @@ import {
   installApiMocks,
   installExecWsMock,
   mockInstances,
+  mockInstanceDetail,
   mockMetricsHistory,
   mockRemoteCatalog,
   sseScript,
@@ -871,4 +872,101 @@ test("profile editor can add then remove config keys and devices", async ({
   await expect(modal.getByLabel("Device name 2")).toBeVisible();
   await modal.getByRole("button", { name: "Remove device 2" }).click();
   await expect(modal.getByLabel("Device name 2")).toHaveCount(0);
+});
+
+test("instance edit modal patches config, devices, and profiles", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  await page.getByRole("button", { name: "Edit" }).click();
+  const modal = page.getByRole("dialog");
+  await expect(modal.getByText('Edit instance "web-01"')).toBeVisible();
+
+  // General: the default profile is preselected; removing the only one blocks saving
+  await expect(modal.getByRole("checkbox", { name: "default" })).toBeChecked();
+  await modal.getByRole("checkbox", { name: "default" }).uncheck();
+  await expect(
+    modal.getByText("At least one profile is required.")
+  ).toBeVisible();
+  await expect(
+    modal.getByRole("button", { name: "Save changes" })
+  ).toBeDisabled();
+  await modal.getByRole("checkbox", { name: "default" }).check();
+
+  // Configuration: tweak an existing key, add a new one; devices pre-seeded
+  await modal.getByRole("tab", { name: "Configuration" }).click();
+  await modal.getByLabel("Config value 1", { exact: true }).fill("4");
+  await modal.getByRole("button", { name: "Add config key" }).click();
+  await modal.getByLabel("Config key 3", { exact: true }).fill("boot.autostart");
+  await modal.getByLabel("Config value 3", { exact: true }).fill("true");
+  await expect(modal.getByLabel("Device name 1")).toHaveValue("eth0");
+  await expect(modal.getByLabel("Device name 2")).toHaveValue("root");
+
+  await modal.getByRole("button", { name: "Save changes" }).click();
+  await expect
+    .poll(() => api.counts.instanceUpdate ?? 0, { timeout: 5_000 })
+    .toBe(1);
+
+  const payload = api.lastInstanceUpdatePayload() as {
+    profiles: string[];
+    config: Record<string, string>;
+    devices: Record<string, Record<string, string>>;
+  };
+  expect(payload.profiles).toEqual(["default"]);
+  expect(payload.config).toMatchObject({
+    "limits.cpu": "4",
+    "boot.autostart": "true",
+  });
+  expect(payload.devices.eth0).toMatchObject({ type: "nic", network: "incusbr0" });
+  expect(payload.devices.root).toMatchObject({
+    type: "disk",
+    path: "/",
+    pool: "default",
+  });
+  await expect(page.getByText("Instance configuration saved.")).toBeVisible();
+});
+
+test("instance edit modal surfaces the underlying Incus error", async ({
+  page,
+}) => {
+  await installApiMocks(page);
+  await page.route("**/api/v1/instances/web-01", async (route) => {
+    if (route.request().method() === "PATCH") {
+      return route.fulfill({
+        status: 400,
+        json: { error: 'DNS name conflict between "eth1" and "eth0"' },
+      });
+    }
+    return route.fulfill({ json: mockInstanceDetail("web-01") });
+  });
+  await page.goto("/instances/web-01");
+  await page.getByRole("button", { name: "Edit" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByRole("tab", { name: "Configuration" }).click();
+  await modal.getByRole("button", { name: "Save changes" }).click();
+  await expect(modal).toContainText("Update failed");
+  await expect(modal).toContainText('between "eth1" and "eth0"');
+});
+
+test("instance rename posts and navigates to the new name", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  await page.getByRole("button", { name: "Rename" }).click();
+  const modal = page.getByRole("dialog");
+  await expect(modal.getByText('Rename instance "web-01"')).toBeVisible();
+
+  const input = modal.getByLabel("New name");
+  await expect(input).toHaveValue("web-01");
+  await input.fill("web-01-prod");
+  await modal.getByRole("button", { name: "Rename" }).click();
+
+  await expect
+    .poll(() => api.counts.rename ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  expect((api.lastRenamePayload() as { name: string }).name).toBe("web-01-prod");
+  await expect(page.getByRole("heading", { name: "web-01-prod" })).toBeVisible();
+  await expect(page).toHaveURL(/\/instances\/web-01-prod$/);
 });

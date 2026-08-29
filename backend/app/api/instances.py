@@ -56,6 +56,23 @@ def get_instance(name: str):
     )
 
 
+@instances_bp.patch("/<name>")
+def update_instance(name: str):
+    provider = get_provider()
+    spec = request.get_json(force=True) or {}
+    metadata = provider.update_instance(name, spec)
+    return jsonify({"ok": True, "metadata": metadata})
+
+
+@instances_bp.post("/<name>/rename")
+def rename_instance(name: str):
+    provider = get_provider()
+    body = request.get_json(force=True) or {}
+    new_name = (body.get("name") or "").strip()
+    metadata = provider.rename_instance(name, new_name)
+    return jsonify({"ok": True, "name": new_name, "metadata": metadata})
+
+
 @instances_bp.post("/<name>/<action>")
 def instance_action(name: str, action: str):
     if action == "delete":

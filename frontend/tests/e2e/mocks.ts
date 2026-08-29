@@ -56,7 +56,10 @@ export const mockInstanceDetail = (name: string) => {
   return {
     ...base,
     config: { "limits.cpu": "2", "limits.memory": "512MiB" },
-    devices: {},
+    devices: {
+      eth0: { type: "nic", network: "incusbr0" },
+      root: { type: "disk", path: "/", pool: "default" },
+    },
     state:
       base.status === "Running"
         ? {
@@ -320,6 +323,8 @@ export interface MockApi {
   lastProfilePayload: () => unknown;
   lastCreatePayload: () => unknown;
   lastPullPayload: () => unknown;
+  lastInstanceUpdatePayload: () => unknown;
+  lastRenamePayload: () => unknown;
   /** Replace the default (static) SSE stream with a custom body. */
   useSseScript: (body: string) => void;
   /** Delay SSE responses so tests can act first. */
@@ -330,6 +335,8 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
   const counts: Record<string, number> = {};
   let createPayload: unknown;
   let pullPayload: unknown;
+  let instanceUpdatePayload: unknown;
+  let renamePayload: unknown;
   let sseBody = ": connected\n\n";
   let sseDelayMs = 0;
 
@@ -441,10 +448,22 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
   });
 
   await page.route(/\/api\/v1\/instances\/[^/]+$/, async (route) => {
-    const url = new URL(route.request().url());
+    const req = route.request();
+    const url = new URL(req.url());
     const name = decodeURIComponent(url.pathname.split("/").pop() ?? "");
     if (!name || name === "instances") return json(route, {});
+    if (req.method() === "PATCH") {
+      counts.instanceUpdate = (counts.instanceUpdate ?? 0) + 1;
+      instanceUpdatePayload = req.postDataJSON();
+      return json(route, { ok: true });
+    }
     return json(route, mockInstanceDetail(name));
+  });
+
+  await page.route("**/api/v1/instances/*/rename", async (route) => {
+    counts.rename = (counts.rename ?? 0) + 1;
+    renamePayload = route.request().postDataJSON();
+    return json(route, { ok: true, name: renamePayload.name });
   });
 
   // Instance actions: /instances/<name>/<action> (start/stop/restart/freeze/unfreeze/delete)
@@ -463,6 +482,8 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     lastPullPayload: () => pullPayload,
     lastSnapshotPayload: () => snapshotPayload,
     lastProfilePayload: () => profilePayload,
+    lastInstanceUpdatePayload: () => instanceUpdatePayload,
+    lastRenamePayload: () => renamePayload,
     useSseScript: (body: string) => {
       sseBody = body;
     },
