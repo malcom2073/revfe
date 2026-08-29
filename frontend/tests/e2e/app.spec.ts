@@ -949,6 +949,57 @@ test("instance edit modal surfaces the underlying Incus error", async ({
   await expect(modal).toContainText('between "eth1" and "eth0"');
 });
 
+test("config editor autocompletes known keys and shows descriptions", async ({
+  page,
+}) => {
+  await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  await page.getByRole("button", { name: "Edit" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByRole("tab", { name: "Configuration" }).click();
+
+  await modal.getByRole("button", { name: "Add config key" }).click();
+
+  // Known keys are wired to a datalist for autocompletion.
+  const datalist = page.locator("datalist#incus-config-keys");
+  await expect(datalist.locator('option[value="limits.memory"]')).toHaveCount(1);
+  await expect(datalist.locator('option[value="boot.autostart"]')).toHaveCount(1);
+  await expect(datalist.locator('option[value="user.*"]')).toHaveCount(1);
+  await expect(modal.getByLabel("Config key 3", { exact: true })).toHaveAttribute(
+    "list",
+    "incus-config-keys"
+  );
+
+  // Typing an exact known key shows its description.
+  await modal.getByLabel("Config key 3", { exact: true }).fill("limits.memory");
+  await expect(modal).toContainText(/Memory limit, e\.g/);
+
+  // A key inside a free-form namespace (user.*) shows the namespace description.
+  await modal.getByLabel("Config key 3", { exact: true }).fill("user.meta.key");
+  await expect(modal).toContainText(/Free-form user key\/value/);
+
+  // An unknown key gets no description (row 2's own limits.memory description stays).
+  await modal.getByLabel("Config key 3", { exact: true }).fill("mystery.key");
+  await expect(modal.getByText(/Memory limit, e\.g/)).toHaveCount(1);
+});
+
+test("create wizard config editor shows autocomplete suggestions and descriptions", async ({
+  page,
+}) => {
+  await installApiMocks(page);
+  await page.goto("/instances");
+  await page.getByRole("button", { name: "Create instance" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("tab", { name: "Configuration" }).click();
+  await dialog.getByRole("button", { name: "Add config key" }).click();
+
+  await dialog.getByPlaceholder("e.g. boot.autostart").fill("security.nesting");
+  await expect(dialog).toContainText(/Allow running Incus \(nested\)/);
+  await expect(
+    page.locator('datalist#incus-config-keys option[value="snapshots.schedule"]')
+  ).toHaveCount(1);
+});
+
 test("instance rename posts and navigates to the new name", async ({
   page,
 }) => {

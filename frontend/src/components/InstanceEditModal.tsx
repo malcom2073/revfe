@@ -17,22 +17,19 @@ import {
   HelperTextItem,
   Title,
 } from "@patternfly/react-core";
-import { MinusCircleIcon, PlusCircleIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
 import type { Instance, ProfileInfo } from "../api/types";
 import DeviceEditor, {
   devicesToRows,
   type DeviceEditorValue,
 } from "../components/DeviceEditor";
-
-interface KV {
-  key: string;
-  value: string;
-}
+import ConfigKeyEditor, {
+  type ConfigKeyRow,
+} from "../components/ConfigKeyEditor";
 
 const NAME_RE = /^[a-zA-Z0-9_-]{1,63}$/;
 
-function toRows(obj: Record<string, unknown>): KV[] {
+function toRows(obj: Record<string, unknown>): ConfigKeyRow[] {
   return Object.entries(obj).map(([key, value]) => ({
     key,
     value: String(value),
@@ -41,7 +38,7 @@ function toRows(obj: Record<string, unknown>): KV[] {
 
 /** Only the user-editable config keys belong in a PATCH payload; volatile.*
  * and image.* keys are managed or read-only on the Incus side. */
-function editableRows(cfg: Record<string, unknown>): KV[] {
+function editableRows(cfg: Record<string, unknown>): ConfigKeyRow[] {
   return toRows(cfg).filter(
     (r) => !r.key.startsWith("volatile.") && !r.key.startsWith("image.")
   );
@@ -59,7 +56,7 @@ export default function InstanceEditModal({
   const [activeTab, setActiveTab] = useState<string | number>("general");
   const [profiles, setProfiles] = useState<string[]>(instance.profiles ?? []);
   const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
-  const [configRows, setConfigRows] = useState<KV[]>(
+  const [configRows, setConfigRows] = useState<ConfigKeyRow[]>(
     editableRows((instance.config ?? {}) as Record<string, unknown>)
   );
   const [deviceRows, setDeviceRows] = useState<DeviceEditorValue[]>(() =>
@@ -157,49 +154,7 @@ export default function InstanceEditModal({
   const configTab = (
     <Form isHorizontal>
       <FormGroup label="Config keys" fieldId="edit-config">
-        {configRows.map((row, idx) => (
-          <div
-            key={idx}
-            style={{ display: "flex", gap: 8, marginBottom: 8 }}
-          >
-            <TextInput
-              aria-label={`Config key ${idx + 1}`}
-              placeholder="limits.cpu"
-              value={row.key}
-              onChange={(_e, v) =>
-                setConfigRows((rows) =>
-                  rows.map((r, i) => (i === idx ? { ...r, key: v } : r))
-                )
-              }
-            />
-            <TextInput
-              aria-label={`Config value ${idx + 1}`}
-              placeholder="2"
-              value={row.value}
-              onChange={(_e, v) =>
-                setConfigRows((rows) =>
-                  rows.map((r, i) => (i === idx ? { ...r, value: v } : r))
-                )
-              }
-            />
-            <Button
-              variant="plain"
-              aria-label={`Remove config key ${idx + 1}`}
-              onClick={() =>
-                setConfigRows((rows) => rows.filter((_, i) => i !== idx))
-              }
-            >
-              <MinusCircleIcon />
-            </Button>
-          </div>
-        ))}
-        <Button
-          variant="link"
-          icon={<PlusCircleIcon />}
-          onClick={() => setConfigRows((rows) => [...rows, { key: "", value: "" }])}
-        >
-          Add config key
-        </Button>
+        <ConfigKeyEditor value={configRows} onChange={setConfigRows} />
       </FormGroup>
       <FormGroup label="Devices" fieldId="edit-devices">
         <DeviceEditor value={deviceRows} onChange={setDeviceRows} />

@@ -22,7 +22,6 @@ import {
   TextInput,
   Title,
 } from "@patternfly/react-core";
-import { TimesIcon, PlusCircleIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
 import type {
   CreateInstanceSpec,
@@ -32,11 +31,9 @@ import type {
   StoragePool,
 } from "../api/types";
 import { REMOTE_SUGGESTIONS } from "../util/remotes";
-
-interface ConfigRow {
-  key: string;
-  value: string;
-}
+import ConfigKeyEditor, {
+  type ConfigKeyRow,
+} from "../components/ConfigKeyEditor";
 
 export default function CreateInstanceWizard({
   onCreated,
@@ -62,7 +59,7 @@ export default function CreateInstanceWizard({
   const [network, setNetwork] = useState("");
   const [profiles, setProfiles] = useState<string[]>(["default"]);
   const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
-  const [configRows, setConfigRows] = useState<ConfigRow[]>([]);
+  const [configRows, setConfigRows] = useState<ConfigKeyRow[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -365,55 +362,20 @@ export default function CreateInstanceWizard({
         </HelperText>
       </FormGroup>
       <FormFieldGroup header={<FormFieldGroupHeader titleText={{ text: "Extra configuration keys", id: "fg-config-keys" }} />} >
-        {configRows.map((row, idx) => (
-          <div
-            key={idx}
-            style={{ display: "flex", gap: "8px", marginBottom: "8px" }}
-          >
-            <TextInput
-              aria-label="Config key"
-              placeholder="e.g. boot.autostart"
-              value={row.key}
-              onChange={(_e, v) =>
-                setConfigRows((rows) =>
-                  rows.map((r, i) => (i === idx ? { ...r, key: v } : r))
-                )
-              }
-            />
-            <TextInput
-              aria-label="Config value"
-              placeholder="true"
-              value={row.value}
-              onChange={(_e, v) =>
-                setConfigRows((rows) =>
-                  rows.map((r, i) => (i === idx ? { ...r, value: v } : r))
-                )
-              }
-            />
-            <Button
-              variant="plain"
-              aria-label={`Remove config row ${idx + 1}`}
-              onClick={() =>
-                setConfigRows((rows) => rows.filter((_, i) => i !== idx))
-              }
-            >
-              <TimesIcon />
-            </Button>
-          </div>
-        ))}
-        <Button
-          variant="link"
-          icon={<PlusCircleIcon />}
-          onClick={() => setConfigRows((rows) => [...rows, { key: "", value: "" }])}
-        >
-          Add config key
-        </Button>
-        <HelperText>
-          <HelperTextItem>
-            Any instance config option — e.g. security.nesting=true,
-            boot.autostart=true, user.* keys for cloud-init.
-          </HelperTextItem>
-        </HelperText>
+        <ConfigKeyEditor
+          value={configRows}
+          onChange={setConfigRows}
+          keyPlaceholder="e.g. boot.autostart"
+          valuePlaceholder="true"
+          hint={
+            <HelperText>
+              <HelperTextItem>
+                Any instance config option — e.g. security.nesting=true,
+                boot.autostart=true, user.* keys for cloud-init.
+              </HelperTextItem>
+            </HelperText>
+          }
+        />
       </FormFieldGroup>
     </Form>
   );

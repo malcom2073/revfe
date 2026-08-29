@@ -10,20 +10,17 @@ import {
   ModalHeader,
   TextInput,
 } from "@patternfly/react-core";
-import { MinusCircleIcon, PlusCircleIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
 import type { ProfileInfo } from "../api/types";
 import DeviceEditor, {
   devicesToRows,
   type DeviceEditorValue,
 } from "../components/DeviceEditor";
+import ConfigKeyEditor, {
+  type ConfigKeyRow,
+} from "../components/ConfigKeyEditor";
 
-interface KV {
-  key: string;
-  value: string;
-}
-
-function toRows(obj: Record<string, unknown>): KV[] {
+function toRows(obj: Record<string, unknown>): ConfigKeyRow[] {
   return Object.entries(obj).map(([key, value]) => ({
     key,
     value: String(value),
@@ -43,7 +40,7 @@ export default function ProfileEditModal({
   const isEdit = existing !== null;
   const [name, setName] = useState(existing?.name ?? "");
   const [description, setDescription] = useState(existing?.description ?? "");
-  const [configRows, setConfigRows] = useState<KV[]>(
+  const [configRows, setConfigRows] = useState<ConfigKeyRow[]>(
     toRows(existing?.config ?? {})
   );
   const [devices, setDevices] = useState<DeviceEditorValue[]>(() => {
@@ -131,55 +128,7 @@ export default function ProfileEditModal({
 
           {/* Config */}
           <FormGroup label="Config keys" fieldId="prof-config">
-            {configRows.map((row, idx) => (
-              <div
-                key={idx}
-                style={{ display: "flex", gap: 8, marginBottom: 8 }}
-              >
-                <TextInput
-                  aria-label={`Config key ${idx + 1}`}
-                  placeholder="limits.cpu"
-                  value={row.key}
-                  onChange={(_e, v) =>
-                    setConfigRows((rows) =>
-                      rows.map((r, i) =>
-                        i === idx ? { ...r, key: v } : r
-                      )
-                    )
-                  }
-                />
-                <TextInput
-                  aria-label={`Config value ${idx + 1}`}
-                  placeholder="2"
-                  value={row.value}
-                  onChange={(_e, v) =>
-                    setConfigRows((rows) =>
-                      rows.map((r, i) =>
-                        i === idx ? { ...r, value: v } : r
-                      )
-                    )
-                  }
-                />
-                <Button
-                  variant="plain"
-                  aria-label={`Remove config key ${idx + 1}`}
-                  onClick={() =>
-                    setConfigRows((rows) => rows.filter((_, i) => i !== idx))
-                  }
-                >
-                  <MinusCircleIcon />
-                </Button>
-              </div>
-            ))}
-            <Button
-              variant="link"
-              icon={<PlusCircleIcon />}
-              onClick={() =>
-                setConfigRows((rows) => [...rows, { key: "", value: "" }])
-              }
-            >
-              Add config key
-            </Button>
+            <ConfigKeyEditor value={configRows} onChange={setConfigRows} />
           </FormGroup>
 
           {/* Devices */}
