@@ -5,55 +5,6 @@ Priorities: **P1** = core usability, **P2** = common admin tasks, **P3** = advan
 
 ---
 
-## P0 — Expand E2E test coverage
-
-Baseline: 22 tests (`frontend/tests/e2e/app.spec.ts`), all mocked at the network layer, run
-hermetically via `make test-ui`. Every page has at least one test, but several areas are shallow.
-This is deliberately larger than housekeeping — each feature below deserves the depth the create
-wizard, profiles, and images already have.
-
-### Cover the destructive paths & flows that have no test
-- **Delete instance** — from the list (kebab/action) and from the detail page; confirm modal,
-  API call + refresh, busy state on the row
-- **Snapshot modals** — custom snapshot name, stateful toggle, and the restore/delete
-  confirmation dialogs (currently only the happy path is asserted)
-- **Catalog refresh** — the "Refresh" button on the remote-images catalog, including its
-  failure/error path (`502` from `/remote-images/refresh`)
-
-### Cover validation & blocked states
-- **Create wizard input validation** — invalid-name helper text (`1-63 characters…`), Create
-  button disabled until name + image are valid, empty image reference
-- **Stopped-state affordances** — Restart disabled unless Running, Stop disabled when Stopped,
-  busy spinner (`isLoading`) while an action is in flight
-
-### Cover error & empty states per page
-- **Load-failure banners** — the `error` `Alert` rendered on Instances, Profiles, Storage,
-  Networks, Images pages when their `GET` mocks `502`/`500`
-- **Empty tables** — "No instances found.", empty profiles gallery, no-pools / no-networks rows
-
-### Assert on rendered values, not just element presence
-- **Storage** — capacity progress-bar values (used/total formatting), CT/VM/image volume type
-  badges, `imageDescription` mapping
-- **Networks** — IPv4/IPv6 NAT labels, "managed" labels, used-by consumer labels (instance /
-  profile / other)
-- **Images** — per-image size/date formatting, `shortFingerprint` display, delete confirmation
-- **Dashboard** — stat cards reflect mock metric values; charts update as `metrics/history`
-  responses change across polls
-- **Instance detail overview** — `lastError`-style fields, profile list rendering, disk count
-
-### Cover remaining interactive widgets
-- **Console shell toggle** — switch between bash and sh and assert the exec URL carries the
-  chosen `shell=` param
-- **Profile device editor** — switching device type swaps the known-field inputs (e.g. disk →
-  gpu shows `pci`), remove-row buttons, config-key removal
-- **Instance detail action buttons** — Start/Stop on a running vs stopped instance toggle
-  correctly and call the right action
-
-**Rule:** no new page or feature ships until its mocked E2E coverage lands alongside it (see
-"E2E coverage" note in the Cross-cutting section at the bottom).
-
----
-
 ## P1 — Core instance & resource management
 
 ### 1. Edit an instance (config / devices / profiles)
