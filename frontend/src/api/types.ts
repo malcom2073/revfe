@@ -109,6 +109,15 @@ export interface NetworkInfo {
   usedBy?: NetworkUsedBy[];
 }
 
+/** Physical host network interface, usable as a nic device `parent`. */
+export interface HostInterface {
+  name: string;
+  type: "physical" | string;
+  linkDetected?: boolean;
+  linkSpeed?: number | null;
+  product?: string;
+}
+
 export interface RemoteImage {
   ref: string;
   os: string;
@@ -191,6 +200,7 @@ export interface CreateInstanceSpec {
   disk_pool?: string;
   network?: string | null;
   config?: Record<string, string>;
+  devices?: Record<string, Record<string, string>>;
 }
 
 export interface InstanceEditSpec {

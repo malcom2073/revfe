@@ -137,6 +137,11 @@ def list_networks():
     return jsonify(get_provider().list_networks())
 
 
+@system_bp.get("/interfaces")
+def list_host_interfaces():
+    return jsonify(get_provider().list_host_interfaces())
+
+
 @system_bp.get("/health")
 def health():
     try:

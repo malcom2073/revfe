@@ -1000,6 +1000,77 @@ test("create wizard config editor shows autocomplete suggestions and description
   ).toHaveCount(1);
 });
 
+test("device editor configures a macvlan nic with parent suggestions", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  await page.getByRole("button", { name: "Edit" }).click();
+  const modal = page.getByRole("dialog");
+  await modal.getByRole("tab", { name: "Configuration" }).click();
+
+  // eth0 nic: switch its nictype to macvlan.
+  await modal.getByLabel("nictype value").selectOption("macvlan");
+  await expect(
+    modal.getByText(/Macvlan puts the container directly on your LAN/)
+  ).toBeVisible();
+
+  const parent = modal.getByLabel("parent value");
+  await expect(parent).toHaveAttribute("list", "incus-host-interfaces");
+  await parent.fill("enp3s0");
+  await expect(
+    page.locator('#incus-host-interfaces option[value="enp3s0"]')
+  ).toHaveCount(1);
+
+  await modal.getByRole("button", { name: "Save changes" }).click();
+  await expect
+    .poll(() => api.counts.instanceUpdate ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  const payload = api.lastInstanceUpdatePayload() as {
+    devices: Record<string, Record<string, string>>;
+  };
+  expect(payload.devices.eth0).toMatchObject({
+    type: "nic",
+    nictype: "macvlan",
+    parent: "enp3s0",
+  });
+  await expect(page.getByText("Instance configuration saved.")).toBeVisible();
+});
+
+test("create wizard can attach a macvlan NIC for an external IP", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances");
+  await page.getByRole("button", { name: "Create instance" }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Name", { exact: false }).fill("macvlan-box");
+  await dialog.getByLabel("Image reference").fill("images:debian/13");
+
+  await dialog.getByRole("tab", { name: "Configuration" }).click();
+  await dialog
+    .getByRole("combobox", { name: "NIC type" })
+    .selectOption("macvlan");
+  const parentSelect = dialog.getByRole("combobox", {
+    name: "Parent interface",
+  });
+  await expect(parentSelect).toContainText("enp3s0");
+  await expect(parentSelect).toContainText("wlp147s0");
+  await parentSelect.selectOption("enp3s0");
+  await expect(dialog).toContainText(/routable\/external IP/);
+
+  await dialog.getByRole("tab", { name: "Review" }).click();
+  await dialog.getByRole("button", { name: "Create instance" }).click();
+  await expect
+    .poll(() => api.counts.create ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  const payload = api.lastCreatePayload() as Record<string, unknown>;
+  expect(payload.network).toBe(null);
+  expect(payload.devices).toEqual({
+    eth0: { type: "nic", nictype: "macvlan", parent: "enp3s0" },
+  });
+});
+
 test("instance rename posts and navigates to the new name", async ({
   page,
 }) => {

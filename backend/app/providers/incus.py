@@ -531,6 +531,31 @@ class IncusProvider:
             )
         return networks
 
+    def list_host_interfaces(self) -> list[dict[str, Any]]:
+        """Physical host NICs, for use as a `parent` on parent-based nic
+        devices (macvlan, ipvlan, physical, routed, sriov)."""
+        try:
+            resources = self._request("GET", "/1.0/resources")
+        except ProviderError:
+            return []
+        interfaces = []
+        for card in (resources.get("network") or {}).get("cards") or []:
+            for port in card.get("ports") or []:
+                name = port.get("id")
+                if not name:
+                    continue
+                interfaces.append(
+                    {
+                        "name": name,
+                        "type": "physical",
+                        "linkDetected": bool(port.get("link_detected")),
+                        "linkSpeed": port.get("link_speed"),
+                        "product": card.get("product") or "",
+                    }
+                )
+        interfaces.sort(key=lambda i: i["name"])
+        return interfaces
+
     def storage_overview(self) -> list[dict[str, Any]]:
         pools = self._request("GET", "/1.0/storage-pools", params={"recursion": 1})
         try:

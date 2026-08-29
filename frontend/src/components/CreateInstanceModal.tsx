@@ -25,6 +25,7 @@ import {
 import { api } from "../api/client";
 import type {
   CreateInstanceSpec,
+  HostInterface,
   ImageInfo,
   NetworkInfo,
   ProfileInfo,
@@ -57,6 +58,11 @@ export default function CreateInstanceWizard({
   const [diskPool, setDiskPool] = useState("");
   const [networks, setNetworks] = useState<NetworkInfo[]>([]);
   const [network, setNetwork] = useState("");
+  const [nicType, setNicType] = useState<"profile" | "network" | "macvlan">(
+    "network"
+  );
+  const [hostInterfaces, setHostInterfaces] = useState<HostInterface[]>([]);
+  const [macvlanParent, setMacvlanParent] = useState("");
   const [profiles, setProfiles] = useState<string[]>(["default"]);
   const [availableProfiles, setAvailableProfiles] = useState<ProfileInfo[]>([]);
   const [configRows, setConfigRows] = useState<ConfigKeyRow[]>([]);
@@ -73,6 +79,15 @@ export default function CreateInstanceWizard({
       })
       .catch(() => setPools([]));
     api.listNetworks().then(setNetworks).catch(() => setNetworks([]));
+    api
+      .listHostInterfaces()
+      .then((ifaces) => {
+        setHostInterfaces(ifaces);
+        if (ifaces.length > 0) {
+          setMacvlanParent((cur) => cur || ifaces[0].name);
+        }
+      })
+      .catch(() => setHostInterfaces([]));
     api
       .listProfiles()
       .then((p) => {
@@ -109,9 +124,11 @@ export default function CreateInstanceWizard({
 
   const nameValid = /^[a-zA-Z0-9_-]{1,63}$/.test(name.trim());
   const imageValid = image.trim().length > 0;
+  const networkValid =
+    nicType !== "macvlan" || macvlanParent.trim().length > 0;
 
   const spec: CreateInstanceSpec | null = useMemo(() => {
-    if (!nameValid || !imageValid) return null;
+    if (!nameValid || !imageValid || !networkValid) return null;
     return {
       name: name.trim(),
       image: image.trim(),
@@ -128,14 +145,24 @@ export default function CreateInstanceWizard({
         disk_gb: diskGb ? Number(diskGb) : undefined,
       },
       disk_pool: diskPool || undefined,
-      network: network || null,
+      network: nicType === "network" ? network : null,
       config: Object.fromEntries(
         configRows.filter((r) => r.key.trim()).map((r) => [r.key.trim(), r.value])
       ),
+      devices: nicType === "macvlan" && macvlanParent.trim()
+        ? {
+            eth0: {
+              type: "nic",
+              nictype: "macvlan",
+              parent: macvlanParent.trim(),
+            },
+          }
+        : undefined,
     };
   }, [
     nameValid,
     imageValid,
+    networkValid,
     name,
     image,
     type,
@@ -145,7 +172,9 @@ export default function CreateInstanceWizard({
     memoryUnit,
     diskGb,
     diskPool,
+    nicType,
     network,
+    macvlanParent,
     configRows,
   ]);
 
@@ -339,28 +368,76 @@ export default function CreateInstanceWizard({
 
   const configTab = (
     <Form isHorizontal>
-      <FormGroup label="NIC network" fieldId="wiz-net">
+      <FormGroup label="NIC type" fieldId="wiz-nictype">
         <FormSelect
-          id="wiz-net"
-          value={network}
-          onChange={(_e, v) => setNetwork(v)}
+          id="wiz-nictype"
+          value={nicType}
+          onChange={(_e, v) => setNicType(v as typeof nicType)}
         >
-          <FormSelectOption value="" label="Profile default" />
-          {networks.map((n) => (
-            <FormSelectOption
-              key={n.name}
-              value={n.name}
-              label={`${n.name} (${n.type}${n.managed ? ", managed" : ""})`}
-            />
-          ))}
+          <FormSelectOption value="profile" label="Profile default" />
+          <FormSelectOption value="network" label="Managed network (bridge)" />
+          <FormSelectOption value="macvlan" label="Macvlan (external IP)" />
         </FormSelect>
-        <HelperText>
-          <HelperTextItem>
-            Adds an eth0 NIC attached to the selected network, overriding the
-            profile default.
-          </HelperTextItem>
-        </HelperText>
+        {nicType === "macvlan" && (
+          <HelperText>
+            <HelperTextItem>
+              The container shares the LAN segment of the selected host
+              interface and normally gets its address from your network's DHCP
+              server (a routable/external IP). The container cannot talk to the
+              host itself over the macvlan link.
+            </HelperTextItem>
+          </HelperText>
+        )}
       </FormGroup>
+      {nicType === "network" && (
+        <FormGroup label="NIC network" fieldId="wiz-net">
+          <FormSelect
+            id="wiz-net"
+            value={network}
+            onChange={(_e, v) => setNetwork(v)}
+          >
+            <FormSelectOption value="" label="Profile default" />
+            {networks.map((n) => (
+              <FormSelectOption
+                key={n.name}
+                value={n.name}
+                label={`${n.name} (${n.type}${n.managed ? ", managed" : ""})`}
+              />
+            ))}
+          </FormSelect>
+          <HelperText>
+            <HelperTextItem>
+              Adds an eth0 NIC attached to the selected network, overriding the
+              profile default.
+            </HelperTextItem>
+          </HelperText>
+        </FormGroup>
+      )}
+      {nicType === "macvlan" && (
+        <FormGroup label="Parent interface" isRequired fieldId="wiz-parent">
+          <FormSelect
+            id="wiz-parent"
+            value={macvlanParent}
+            onChange={(_e, v) => setMacvlanParent(v)}
+          >
+            {hostInterfaces.map((i) => (
+              <FormSelectOption
+                key={i.name}
+                value={i.name}
+                label={`${i.name}${
+                  i.linkDetected ? " (link up)" : " (no link)"
+                }`}
+              />
+            ))}
+          </FormSelect>
+          <HelperText>
+            <HelperTextItem>
+              Physical interfaces on the Incus host. Check `ip link` on which is
+              connected to the network you want an external IP on.
+            </HelperTextItem>
+          </HelperText>
+        </FormGroup>
+      )}
       <FormFieldGroup header={<FormFieldGroupHeader titleText={{ text: "Extra configuration keys", id: "fg-config-keys" }} />} >
         <ConfigKeyEditor
           value={configRows}
@@ -394,7 +471,12 @@ export default function CreateInstanceWizard({
             ["Memory limit", spec.limits.memory ?? "unlimited"],
             ["Root disk", spec.limits.disk_gb ? `${spec.limits.disk_gb} GiB` : "pool default"],
             ["Storage pool", diskPool],
-            ["Network", spec.network ?? "profile default"],
+            [
+              "Network",
+              nicType === "macvlan"
+                ? `macvlan @ ${spec.devices?.eth0?.parent ?? "—"}`
+                : spec.network ?? "profile default",
+            ],
             ...Object.entries(spec.config ?? {}).map(([k, v]) => [`config: ${k}`, v]),
           ].map(([k, v]) => (
             <tr key={k as string}>
@@ -445,7 +527,11 @@ export default function CreateInstanceWizard({
               <Alert
                 variant="warning"
                 isInline
-                title="Provide a valid name and image to continue"
+                title={
+                  !networkValid
+                    ? "Choose a parent interface for the macvlan NIC to continue"
+                    : "Provide a valid name and image to continue"
+                }
               />
             )}
             {reviewTab}

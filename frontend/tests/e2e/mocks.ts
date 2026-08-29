@@ -396,6 +396,24 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     json(route, mockPools)
   );
   await page.route("**/api/v1/networks", (route) => json(route, mockNetworks));
+  await page.route("**/api/v1/interfaces", (route) =>
+    json(route, [
+      {
+        name: "enp3s0",
+        type: "physical",
+        linkDetected: true,
+        linkSpeed: 1000,
+        product: "Test Gigabit NIC",
+      },
+      {
+        name: "wlp147s0",
+        type: "physical",
+        linkDetected: false,
+        linkSpeed: null,
+        product: "Test Wireless",
+      },
+    ])
+  );
   await page.route("**/api/v1/operations", (route) =>
     json(route, mockRunningOps)
   );

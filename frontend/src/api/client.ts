@@ -117,6 +117,8 @@ export const api = {
   listStoragePools: () =>
     request<import("./types").StoragePool[]>("/storage-pools"),
   listNetworks: () => request<import("./types").NetworkInfo[]>("/networks"),
+  listHostInterfaces: () =>
+    request<import("./types").HostInterface[]>("/interfaces"),
 };
 
 export function execWsUrl(name: string, shell: string): string {
