@@ -395,6 +395,9 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
   await page.route("**/api/v1/remote-images", (route) =>
     json(route, { fetchedAt: null, images: [] })
   );
+  await page.route("**/api/v1/remote-images/refresh", (route) =>
+    json(route, { ok: true })
+  );
   await page.route("**/api/v1/storage", (route) => json(route, mockStorage));
   await page.route("**/api/v1/metrics/history", (route) =>
     json(route, mockMetricsHistory)
@@ -443,6 +446,16 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
     if (!name || name === "instances") return json(route, {});
     return json(route, mockInstanceDetail(name));
   });
+
+  // Instance actions: /instances/<name>/<action> (start/stop/restart/freeze/unfreeze/delete)
+  await page.route(
+    /\/api\/v1\/instances\/[^/]+\/(start|stop|restart|freeze|unfreeze|delete)$/,
+    async (route) => {
+      const action = route.request().url().split("/").pop() ?? "";
+      counts[action] = (counts[action] ?? 0) + 1;
+      return json(route, { ok: true });
+    }
+  );
 
   return {
     counts,

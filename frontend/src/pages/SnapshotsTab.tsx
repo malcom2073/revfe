@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Button,
+  Checkbox,
   Label,
   Modal,
   ModalBody,
@@ -33,6 +34,7 @@ export default function SnapshotsTab({
   const [busy, setBusy] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [snapName, setSnapName] = useState("");
+  const [stateful, setStateful] = useState(false);
   // Snapshot pending destructive confirmation: restore or delete
   const [pending, setPending] = useState<{
     action: "restore" | "delete";
@@ -54,10 +56,12 @@ export default function SnapshotsTab({
     try {
       const res = await api.createSnapshot(
         instanceName,
-        snapName.trim() || undefined
+        snapName.trim() || undefined,
+        stateful
       );
       setNotice(`Snapshot "${res.name}" created.`);
       setSnapName("");
+      setStateful(false);
       setCreating(false);
       refresh();
     } catch (e) {
@@ -187,6 +191,14 @@ export default function SnapshotsTab({
           onChange={(_e, v) => setSnapName(v)}
           onKeyDown={(e) => e.key === "Enter" && take()}
         />
+        <div className="pf-v6-u-mt-md">
+          <Checkbox
+            id="snap-stateful"
+            label="Include instance state (stateful)"
+            isChecked={stateful}
+            onChange={(_e, checked) => setStateful(checked)}
+          />
+        </div>
         <div className="pf-v6-u-mt-lg">
           <Button
             variant="primary"

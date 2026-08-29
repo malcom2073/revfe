@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   Alert,
   Breadcrumb,
@@ -14,6 +14,10 @@ import {
   DescriptionListTerm,
   Gallery,
   Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   PageSection,
   Progress,
   Tab,
@@ -21,7 +25,7 @@ import {
   Tabs,
   Title,
 } from "@patternfly/react-core";
-import { CheckIcon, CopyIcon } from "@patternfly/react-icons";
+import { CheckIcon, CopyIcon, TrashIcon } from "@patternfly/react-icons";
 import { api } from "../api/client";
 import type { Instance } from "../api/types";
 import Terminal from "../components/Terminal";
@@ -51,10 +55,12 @@ function CopyButton({ text }: { text: string }) {
 
 export default function InstanceDetail() {
   const { name = "" } = useParams();
+  const navigate = useNavigate();
   const [instance, setInstance] = useState<Instance | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string | number>("overview");
   const [shell, setShell] = useState("bash");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const refresh = useCallback(() => {
     api
@@ -74,6 +80,15 @@ export default function InstanceDetail() {
       </PageSection>
     );
   }
+
+  const runAction = async (action: string) => {
+        try {
+          await api.instanceAction(name, action);
+          refresh();
+        } catch (e) {
+          setError((e as Error).message);
+        }
+      };
 
   return (
     <>
@@ -97,8 +112,7 @@ export default function InstanceDetail() {
             <Button
               variant="primary"
               onClick={async () => {
-                await api.instanceAction(name, "start");
-                refresh();
+                await runAction("start");
               }}
             >
               Start
@@ -108,13 +122,20 @@ export default function InstanceDetail() {
             <Button
               variant="secondary"
               onClick={async () => {
-                await api.instanceAction(name, "stop");
-                refresh();
+                await runAction("stop");
               }}
             >
               Stop
             </Button>
           )}
+          <Button
+            variant="danger"
+            icon={<TrashIcon />}
+            isDisabled={!instance}
+            onClick={() => setConfirmDelete(true)}
+          >
+            Delete
+          </Button>
         </div>
         <Tabs
           activeKey={activeTab}
@@ -325,6 +346,33 @@ export default function InstanceDetail() {
           </Tab>
         </Tabs>
       </PageSection>
+
+      <Modal isOpen={confirmDelete} onClose={() => setConfirmDelete(false)}>
+        <ModalHeader title={`Delete instance "${name}"?`} />
+        <ModalBody>
+          This permanently removes the instance and its data. Consider taking
+          a snapshot or backup first.
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="danger"
+            onClick={async () => {
+              try {
+                await api.deleteInstance(name);
+                navigate("/instances");
+              } catch (e) {
+                setError((e as Error).message);
+                setConfirmDelete(false);
+              }
+            }}
+          >
+            Delete
+          </Button>{" "}
+          <Button variant="link" onClick={() => setConfirmDelete(false)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </>
   );
 }

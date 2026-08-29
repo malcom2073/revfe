@@ -3,6 +3,7 @@ import {
   installApiMocks,
   installExecWsMock,
   mockInstances,
+  mockMetricsHistory,
   mockRemoteCatalog,
   sseScript,
   FULL_FP,
@@ -605,4 +606,269 @@ test("running instance console opens terminal over mocked websocket", async ({
   await expect(terminal).toBeVisible();
   await expect(page.locator(".xterm-rows")).toContainText("Connected.");
   await expect(page.locator(".xterm-rows")).toContainText("root@web-01");
+});
+
+test("instances list delete requires confirmation and calls the API", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances");
+
+  const row = page.getByRole("row", { name: /debian-vm/ });
+  await row
+    .getByRole("button", { name: "Delete debian-vm", exact: true })
+    .click();
+
+  const dlg = page.getByRole("dialog");
+  await expect(
+    dlg.getByText(/permanently removes the instance/)
+  ).toBeVisible();
+  // Cancel keeps it alive
+  await dlg.getByRole("button", { name: "Cancel" }).click();
+  await expect(dlg).toHaveCount(0);
+
+  await row
+    .getByRole("button", { name: "Delete debian-vm", exact: true })
+    .click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
+  await expect
+    .poll(() => api.counts.delete ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+});
+
+test("instance detail delete confirms and navigates back to the list", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  await page.getByRole("button", { name: "Delete" }).click();
+  const dlg = page.getByRole("dialog");
+  await expect(dlg.getByText(/permanently removes the instance/)).toBeVisible();
+  await dlg.getByRole("button", { name: "Delete", exact: true }).click();
+  await expect
+    .poll(() => api.counts.delete ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  await expect(page.getByRole("heading", { name: "Instances" })).toBeVisible();
+});
+
+test("snapshot list badges and stateful creation round-trip", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances/web-01");
+  const main = page.getByRole("main");
+  await main.getByRole("tab", { name: "Snapshots" }).click();
+
+  // Existing snapshots carry stateful/stateless badges
+  const table = main.getByRole("grid");
+  await expect(table.getByText("stateless", { exact: true })).toBeVisible();
+  await expect(table.getByText("stateful", { exact: true })).toBeVisible();
+
+  // Auto-named + stateful create
+  await main.getByRole("button", { name: "Take snapshot" }).click();
+  const dlg = page.getByRole("dialog");
+  await dlg.getByLabel("Include instance state (stateful)").check();
+  await dlg.getByRole("button", { name: "Create snapshot" }).click();
+  await expect
+    .poll(() => api.counts.snapshotCreate ?? 0, { timeout: 5_000 })
+    .toBe(1);
+  expect(api.lastSnapshotPayload()).toMatchObject({ stateful: true });
+  expect(api.lastSnapshotPayload() as Record<string, unknown>).not.toHaveProperty(
+    "name"
+  );
+});
+
+test("catalog refresh failure surfaces an error alert", async ({ page }) => {
+  await page.route("**/api/v1/remote-images/refresh", (route) =>
+    route.fulfill({ status: 502, json: { error: "upstream timed out" } })
+  );
+  await page.goto("/images");
+  const main = page.getByRole("main");
+  await main.getByRole("button", { name: "Refresh image list" }).click();
+  await expect(main.getByText("upstream timed out")).toBeVisible();
+});
+
+test("create wizard blocks invalid names and missing images", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances");
+  await page.getByRole("button", { name: "Create instance" }).click();
+  const dialog = page.getByRole("dialog");
+  const createBtn = dialog.getByRole("button", {
+    name: "Create instance",
+    exact: true,
+  });
+
+  await expect(createBtn).toBeDisabled();
+
+  // Invalid name shows helper text and stays blocked
+  await dialog.getByLabel("Name", { exact: false }).fill("bad name!!");
+  await expect(dialog.getByText(/1-63 characters/)).toBeVisible();
+  await expect(createBtn).toBeDisabled();
+
+  // Valid name + image unlocks creation
+  await dialog.getByLabel("Name", { exact: false }).fill("good-name");
+  await expect(dialog.getByText(/1-63 characters/)).toHaveCount(0);
+  await dialog.getByLabel("Image reference").fill("ubuntu:24.04");
+  await expect(createBtn).toBeEnabled();
+
+  // Removing the image blocks again
+  await dialog.getByLabel("Image reference").fill("");
+  await expect(createBtn).toBeDisabled();
+});
+
+test("instance action buttons respect state and busy lock", async ({
+  page,
+}) => {
+  const api = await installApiMocks(page);
+  await page.goto("/instances");
+  const table = page.getByRole("grid");
+  const webRow = table.getByRole("row", { name: /web-01/ });
+  const stoppedRow = table.getByRole("row", { name: /debian-vm/ });
+
+  // Running: stop/restart enabled, start disabled
+  await expect(
+    webRow.getByRole("button", { name: "Stop web-01", exact: true })
+  ).toBeEnabled();
+  await expect(
+    webRow.getByRole("button", { name: "Restart web-01", exact: true })
+  ).toBeEnabled();
+  await expect(
+    webRow.getByRole("button", { name: "Start web-01", exact: true })
+  ).toBeDisabled();
+  // Stopped: start enabled, stop/restart disabled
+  await expect(
+    stoppedRow.getByRole("button", { name: "Start debian-vm", exact: true })
+  ).toBeEnabled();
+  await expect(
+    stoppedRow.getByRole("button", { name: "Stop debian-vm", exact: true })
+  ).toBeDisabled();
+  await expect(
+    stoppedRow.getByRole("button", { name: "Restart debian-vm", exact: true })
+  ).toBeDisabled();
+
+  // While an action is in flight every action button is locked
+  let startCompleted = 0;
+  await page.route("**/api/v1/instances/debian-vm/start", async (route) => {
+    await new Promise((r) => setTimeout(r, 2500));
+    startCompleted++;
+    await route.fulfill({ json: { ok: true } });
+  });
+  await stoppedRow
+    .getByRole("button", { name: "Start debian-vm", exact: true })
+    .click();
+  await expect(
+    webRow.getByRole("button", { name: "Restart web-01", exact: true })
+  ).toBeDisabled();
+  await expect(
+    stoppedRow.getByRole("button", { name: "Stop debian-vm", exact: true })
+  ).toBeDisabled();
+  // ...and unlock again after completion
+  await expect
+    .poll(() => startCompleted, { timeout: 5_000 })
+    .toBe(1);
+  await expect(
+    webRow.getByRole("button", { name: "Restart web-01", exact: true })
+  ).toBeEnabled();
+});
+
+test("instances page renders error banner and empty state", async ({
+  page,
+}) => {
+  await page.route("**/api/v1/instances", (route) =>
+    route.fulfill({ status: 500, json: { error: "boom" } })
+  );
+  await page.goto("/instances");
+  await expect(page.getByText("Could not load instances")).toBeVisible();
+  await expect(page.getByText("boom")).toBeVisible();
+
+  await page.route("**/api/v1/instances", (route) =>
+    route.fulfill({ json: [] })
+  );
+  await page.reload();
+  await expect(page.getByText("No instances found.")).toBeVisible();
+});
+
+test("storage page shows error and empty states", async ({ page }) => {
+  await page.route("**/api/v1/storage", (route) =>
+    route.fulfill({ status: 500, json: { error: "pool offline" } })
+  );
+  await page.goto("/storage");
+  await expect(page.getByText("Could not load storage")).toBeVisible();
+
+  await page.route("**/api/v1/storage", (route) => route.fulfill({ json: [] }));
+  await page.reload();
+  await expect(page.getByText("No storage pools found.")).toBeVisible();
+});
+
+test("dashboard stat cards refresh on the poll interval", async ({
+  page,
+}) => {
+  let mem = 121_000_000;
+  await page.route("**/api/v1/metrics/history", (route) => {
+    const points = mockMetricsHistory.points.map((p, i) => ({
+      ...p,
+      instances: {
+        "web-01": { ...p.instances["web-01"], memoryUsed: mem + i * 1000 },
+        "debian-vm": p.instances["debian-vm"],
+      },
+    }));
+    return route.fulfill({ json: { ...mockMetricsHistory, points } });
+  });
+  await page.goto("/");
+  const main = page.getByRole("main");
+  await expect(main.getByText(/353.8 MiB/)).toBeVisible();
+
+  mem = 500_000_000;
+  await expect(main.getByText(/715.3 MiB/)).toBeVisible({ timeout: 15_000 });
+});
+
+test("console shell toggle reconnects with the new shell", async ({ page }) => {
+  let wsUrl = "";
+  await page.routeWebSocket(/\/api\/v1\/instances\/.*\/exec.*/, (ws) => {
+    wsUrl = ws.url();
+    setTimeout(() => ws.send("root@web-01:~# "), 50);
+  });
+  await page.goto("/instances/web-01");
+  const main = page.getByRole("main");
+  await main.getByRole("tab", { name: "Console" }).click();
+
+  const toggle = main.getByRole("button", { name: /Shell: bash/ });
+  await expect(toggle).toBeVisible();
+  await expect.poll(() => wsUrl, { timeout: 5_000 }).toContain("shell=bash");
+
+  await toggle.click();
+  await expect(main.getByRole("button", { name: /Shell: sh/ })).toBeVisible();
+  await expect.poll(() => wsUrl, { timeout: 5_000 }).toContain("shell=sh");
+});
+
+test("profile editor can add then remove config keys and devices", async ({
+  page,
+}) => {
+  await installApiMocks(page);
+  await page.goto("/profiles");
+  const main = page.getByRole("main");
+  await main.getByRole("button", { name: "Create profile" }).click();
+  const modal = page.getByRole("dialog");
+
+  // Config key add + remove
+  await modal.getByRole("button", { name: "Add config key" }).click();
+  await modal
+    .getByLabel("Config key 1", { exact: true })
+    .fill("limits.cpu");
+  await modal.getByRole("button", { name: "Remove config key 1" }).click();
+  await expect(
+    modal.getByLabel("Config key 1", { exact: true })
+  ).toHaveCount(0);
+
+  // Device row add + remove
+  await modal.getByRole("button", { name: "Add device" }).click();
+  await expect(modal.getByLabel("Device name 2")).toBeVisible();
+  await modal.getByRole("button", { name: "Remove device 2" }).click();
+  await expect(modal.getByLabel("Device name 2")).toHaveCount(0);
 });

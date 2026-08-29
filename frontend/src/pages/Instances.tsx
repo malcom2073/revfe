@@ -3,6 +3,10 @@ import { Link } from "react-router-dom";
 import {
   Button,
   Label,
+  Modal,
+  ModalBody,
+  ModalFooter,
+  ModalHeader,
   PageSection,
   Title,
   Toolbar,
@@ -19,7 +23,7 @@ import {
   Thead,
   Tr,
 } from "@patternfly/react-table";
-import { PlayCircleIcon, StopCircleIcon, SyncAltIcon } from "@patternfly/react-icons";
+import { PlayCircleIcon, StopCircleIcon, SyncAltIcon, TrashIcon } from "@patternfly/react-icons";
 import { api, eventsUrl } from "../api/client";
 import type { Instance } from "../api/types";
 import CreateInstanceWizard from "../components/CreateInstanceModal";
@@ -46,6 +50,7 @@ export default function Instances() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Instance | null>(null);
 
   const refresh = useCallback(() => {
     api
@@ -86,6 +91,22 @@ export default function Instances() {
       refresh();
     } catch (e) {
       setActionError((e as Error).message);
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const removeInstance = async () => {
+    if (!deleting) return;
+    setActionError(null);
+    setBusy(`${deleting.name}:delete`);
+    try {
+      await api.deleteInstance(deleting.name);
+      setDeleting(null);
+      refresh();
+    } catch (e) {
+      setActionError((e as Error).message);
+      setDeleting(null);
     } finally {
       setBusy(null);
     }
@@ -176,6 +197,15 @@ export default function Instances() {
                 >
                   <SyncAltIcon />
                 </Button>
+                <Button
+                  variant="plain"
+                  aria-label={`Delete ${inst.name}`}
+                  isLoading={busy === `${inst.name}:delete`}
+                  isDisabled={busy !== null}
+                  onClick={() => setDeleting(inst)}
+                >
+                  <TrashIcon />
+                </Button>
               </Td>
             </Tr>
           ))}
@@ -195,6 +225,26 @@ export default function Instances() {
           onClose={() => setCreateOpen(false)}
         />
       )}
+
+      <Modal isOpen={deleting !== null} onClose={() => setDeleting(null)}>
+        <ModalHeader title={`Delete instance "${deleting?.name}"?`} />
+        <ModalBody>
+          This permanently removes the instance and its data. Consider taking
+          a snapshot or backup first.
+        </ModalBody>
+        <ModalFooter>
+          <Button
+            variant="danger"
+            onClick={removeInstance}
+            isLoading={busy === `${deleting?.name}:delete`}
+          >
+            Delete
+          </Button>{" "}
+          <Button variant="link" onClick={() => setDeleting(null)}>
+            Cancel
+          </Button>
+        </ModalFooter>
+      </Modal>
     </PageSection>
   );
 }
