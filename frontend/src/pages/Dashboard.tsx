@@ -38,6 +38,29 @@ interface SeriesPoint {
   values: Record<string, number>;
 }
 
+/**
+ * Incus refreshes its cumulative *_bytes_total / cpu_seconds_total counters on
+ * a ~10s cycle while we sample every 5s, so a steady workload arrives as a
+ * step function: adjacent-sample deltas alternate 0 / double-rate, which
+ * charts as spikes. Instead, compute rates as the slope of the cumulative
+ * value over a fixed lookback window; for steady traffic that is exact and
+ * constant.
+ */
+const RATE_WINDOW_MS = 40_000;
+
+function smoothRates<T extends { t: number }>(
+  points: T[],
+  read: (p: T) => number
+): number[] {
+  return points.map((cur, idx) => {
+    let j = idx;
+    while (j > 0 && cur.t - points[j - 1].t <= RATE_WINDOW_MS) j -= 1;
+    const prev = points[j];
+    const dt = Math.max(1, (cur.t - prev.t) / 1000);
+    return Math.max(0, (read(cur) - read(prev)) / dt);
+  });
+}
+
 function buildSeries(history: MetricsHistory): {
   cpuTotals: SeriesPoint[];
   mem: SeriesPoint[];
@@ -74,48 +97,37 @@ function buildSeries(history: MetricsHistory): {
     netRaw.push({ t: ts, label, rx, tx });
   }
 
-  const netRates: SeriesPoint[] = netRaw.map((cur, idx): SeriesPoint => {
-    if (idx === 0) return { t: cur.t, label: cur.label, values: {} };
-    const prev = netRaw[idx - 1];
-    const dt = Math.max(1, (cur.t - prev.t) / 1000);
-    return {
-      t: cur.t,
-      label: cur.label,
-      values: {
-        received: Math.max(0, cur.rx - prev.rx) / dt / 1024,
-        transmitted: Math.max(0, cur.tx - prev.tx) / dt / 1024,
-      },
-    };
-  });
+  const rxRates = smoothRates(netRaw, (p) => p.rx);
+  const txRates = smoothRates(netRaw, (p) => p.tx);
+  const netRates: SeriesPoint[] = netRaw.map((cur, idx) => ({
+    t: cur.t,
+    label: cur.label,
+    values: {
+      received: rxRates[idx] / 1024,
+      transmitted: txRates[idx] / 1024,
+    },
+  }));
 
   return { cpuTotals, mem, netRates };
 }
 
 /** Convert cumulative cpu-seconds into per-sample utilization (%). */
 function cpuUtilization(totals: SeriesPoint[]): SeriesPoint[] {
-  return totals.map((point, idx) => {
-    if (idx === 0)
-      return {
-        ...point,
-        values: Object.fromEntries(
-          Object.keys(point.values).map((n) => [n, 0])
-        ),
-      };
-    const prev = totals[idx - 1];
-    const dt = Math.max(1, (point.t - prev.t) / 1000);
-    return {
-      ...point,
-      values: Object.fromEntries(
-        Object.entries(point.values).map(([name, total]) => [
-          name,
-          Math.max(
-            0,
-            Math.min(100, ((total - (prev.values[name] ?? total)) / dt) * 100)
-          ),
-        ])
+  const names = Array.from(
+    new Set(totals.flatMap((point) => Object.keys(point.values)))
+  );
+  const rates = Object.fromEntries(
+    names.map((name) => [
+      name,
+      smoothRates(totals, (p) => p.values[name] ?? 0).map(
+        (v) => Math.max(0, Math.min(100, v * 100))
       ),
-    };
-  });
+    ])
+  );
+  return totals.map((point, idx) => ({
+    ...point,
+    values: Object.fromEntries(names.map((n) => [n, rates[n][idx] ?? 0])),
+  }));
 }
 
 interface TimeChartProps {
