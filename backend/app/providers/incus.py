@@ -556,6 +556,30 @@ class IncusProvider:
         interfaces.sort(key=lambda i: i["name"])
         return interfaces
 
+    def config_keys(self) -> list[dict[str, Any]]:
+        """Instance config keys with one-line descriptions, pulled live from
+        the daemon's metadata API so suggestions always match the running
+        Incus version."""
+        try:
+            metadata = self._request("GET", "/1.0/metadata/configuration")
+        except ProviderError:
+            return []
+        configs = (metadata.get("configs") or {}).get("instance") or {}
+        by_key: dict[str, str] = {}
+        for section in configs.values():
+            for entry in section.get("keys") or []:
+                for name, meta in entry.items():
+                    desc = (
+                        (meta.get("shortdesc") or "").strip()
+                        or (meta.get("longdesc") or "").strip()
+                    )
+                    if desc:
+                        by_key[name] = desc
+        return sorted(
+            ({"key": k, "description": v} for k, v in by_key.items()),
+            key=lambda e: e["key"],
+        )
+
     def storage_overview(self) -> list[dict[str, Any]]:
         pools = self._request("GET", "/1.0/storage-pools", params={"recursion": 1})
         try:

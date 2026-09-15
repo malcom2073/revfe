@@ -118,6 +118,11 @@ export interface HostInterface {
   product?: string;
 }
 
+export interface ConfigKeyEntry {
+  key: string;
+  description: string;
+}
+
 export interface RemoteImage {
   ref: string;
   os: string;

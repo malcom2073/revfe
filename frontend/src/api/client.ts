@@ -119,6 +119,7 @@ export const api = {
   listNetworks: () => request<import("./types").NetworkInfo[]>("/networks"),
   listHostInterfaces: () =>
     request<import("./types").HostInterface[]>("/interfaces"),
+  configKeys: () => request<import("./types").ConfigKeyEntry[]>("/config-keys"),
 };
 
 export function execWsUrl(name: string, shell: string): string {

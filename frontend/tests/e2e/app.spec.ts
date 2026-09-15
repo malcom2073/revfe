@@ -965,6 +965,9 @@ test("config editor autocompletes known keys and shows descriptions", async ({
   await expect(datalist.locator('option[value="limits.memory"]')).toHaveCount(1);
   await expect(datalist.locator('option[value="boot.autostart"]')).toHaveCount(1);
   await expect(datalist.locator('option[value="user.*"]')).toHaveCount(1);
+  // A key that only exists in the daemon's metadata proves the editor pulls
+  // suggestions from the live API.
+  await expect(datalist.locator('option[value="e2e.dynamic.only"]')).toHaveCount(1);
   await expect(modal.getByLabel("Config key 3", { exact: true })).toHaveAttribute(
     "list",
     "incus-config-keys"
@@ -977,6 +980,10 @@ test("config editor autocompletes known keys and shows descriptions", async ({
   // A key inside a free-form namespace (user.*) shows the namespace description.
   await modal.getByLabel("Config key 3", { exact: true }).fill("user.meta.key");
   await expect(modal).toContainText(/Free-form user key\/value/);
+
+  // A key that only ships in the daemon metadata resolves to its live description.
+  await modal.getByLabel("Config key 3", { exact: true }).fill("e2e.dynamic.only");
+  await expect(modal).toContainText(/live daemon metadata API/);
 
   // An unknown key gets no description (row 2's own limits.memory description stays).
   await modal.getByLabel("Config key 3", { exact: true }).fill("mystery.key");

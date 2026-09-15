@@ -414,6 +414,35 @@ export async function installApiMocks(page: Page): Promise<MockApi> {
       },
     ])
   );
+  await page.route("**/api/v1/config-keys", (route) =>
+    json(route, [
+      {
+        key: "limits.memory",
+        description: "Memory limit, e.g. 512MiB, 1GiB or 50% of host memory",
+      },
+      {
+        key: "boot.autostart",
+        description: "Whether to always start the instance when the daemon starts",
+      },
+      {
+        key: "user.*",
+        description: "Free-form user key/value storage (searchable metadata)",
+      },
+      {
+        key: "security.nesting",
+        description:
+          "Allow running Incus (nested) inside a container / nested virtualization on VMs",
+      },
+      {
+        key: "snapshots.schedule",
+        description: "Cron expression or alias (@hourly, @daily) for automatic snapshots",
+      },
+      {
+        key: "e2e.dynamic.only",
+        description: "Only exposed via the live daemon metadata API",
+      },
+    ])
+  );
   await page.route("**/api/v1/operations", (route) =>
     json(route, mockRunningOps)
   );

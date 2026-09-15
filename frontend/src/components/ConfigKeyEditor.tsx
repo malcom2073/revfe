@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import {
   Button,
   HelperText,
@@ -6,9 +6,10 @@ import {
   TextInput,
 } from "@patternfly/react-core";
 import { MinusCircleIcon, PlusCircleIcon } from "@patternfly/react-icons";
+import type { ConfigKeyEntry } from "../api/types";
 import {
-  KNOWN_CONFIG_KEYS,
-  describeConfigKey,
+  getConfigKeys,
+  lookupDescription,
 } from "../util/configKeys";
 
 export interface ConfigKeyRow {
@@ -33,15 +34,21 @@ export default function ConfigKeyEditor({
   valuePlaceholder = "2",
   hint,
 }: Props) {
+  // Suggestions and descriptions come only from the live daemon.
+  const [entries, setEntries] = useState<ConfigKeyEntry[]>([]);
+  useEffect(() => {
+    getConfigKeys().then(setEntries).catch(() => undefined);
+  }, []);
+
   return (
     <>
       <datalist id={DATALIST_ID}>
-        {KNOWN_CONFIG_KEYS.map(({ key }) => (
+        {entries.map(({ key }) => (
           <option key={key} value={key} />
         ))}
       </datalist>
       {value.map((row, idx) => {
-        const description = describeConfigKey(row.key);
+        const description = lookupDescription(entries, row.key);
         return (
           <div key={idx} style={{ marginBottom: 8 }}>
             <div style={{ display: "flex", gap: 8 }}>

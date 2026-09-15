@@ -142,6 +142,11 @@ def list_host_interfaces():
     return jsonify(get_provider().list_host_interfaces())
 
 
+@system_bp.get("/config-keys")
+def config_keys():
+    return jsonify(get_provider().config_keys())
+
+
 @system_bp.get("/health")
 def health():
     try:
